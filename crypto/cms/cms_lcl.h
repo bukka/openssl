@@ -29,6 +29,7 @@ typedef struct CMS_EnvelopedData_st CMS_EnvelopedData;
 typedef struct CMS_DigestedData_st CMS_DigestedData;
 typedef struct CMS_EncryptedData_st CMS_EncryptedData;
 typedef struct CMS_AuthenticatedData_st CMS_AuthenticatedData;
+typedef struct CMS_AuthEnvelopedData_st CMS_AuthEnvelopedData;
 typedef struct CMS_CompressedData_st CMS_CompressedData;
 typedef struct CMS_OtherCertificateFormat_st CMS_OtherCertificateFormat;
 typedef struct CMS_KeyTransRecipientInfo_st CMS_KeyTransRecipientInfo;
@@ -250,6 +251,16 @@ struct CMS_AuthenticatedData_st {
     X509_ALGOR *macAlgorithm;
     X509_ALGOR *digestAlgorithm;
     CMS_EncapsulatedContentInfo *encapContentInfo;
+    STACK_OF(X509_ATTRIBUTE) *authAttrs;
+    ASN1_OCTET_STRING *mac;
+    STACK_OF(X509_ATTRIBUTE) *unauthAttrs;
+};
+
+struct CMS_AuthEnvelopedData_st {
+    int32_t version;
+    CMS_OriginatorInfo *originatorInfo;
+    STACK_OF(CMS_RecipientInfo) *recipientInfos;
+    CMS_EncryptedContentInfo *authEncryptedContentInfo;
     STACK_OF(X509_ATTRIBUTE) *authAttrs;
     ASN1_OCTET_STRING *mac;
     STACK_OF(X509_ATTRIBUTE) *unauthAttrs;
