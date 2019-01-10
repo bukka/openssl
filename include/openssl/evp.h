@@ -355,6 +355,12 @@ int (*EVP_CIPHER_meth_get_ctrl(const EVP_CIPHER *cipher))(EVP_CIPHER_CTX *,
 # define         EVP_CTRL_GET_IV                         0x25
 /* Tell the cipher it's doing a speed test (SIV disallows multiple ops) */
 # define         EVP_CTRL_SET_SPEED                      0x26
+/* Set the IV used by the cipher */
+# define         EVP_CTRL_SET_IV                         0x27
+/* Get the IV length for AEAD cipher */
+# define         EVP_CTRL_AEAD_GET_IVLEN                 0x28
+/* Get the tag length for AEAD cipher */
+# define         EVP_CTRL_AEAD_GET_TAGLEN                0x29
 
 /* Padding modes */
 #define EVP_PADDING_PKCS7       1
@@ -1141,6 +1147,8 @@ int EVP_CIPHER_asn1_to_param(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
 /* These are used by EVP_CIPHER methods */
 int EVP_CIPHER_set_asn1_iv(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
 int EVP_CIPHER_get_asn1_iv(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
+int EVP_CIPHER_set_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
+int EVP_CIPHER_get_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
 
 /* PKCS5 password based encryption */
 int PKCS5_PBE_keyivgen(EVP_CIPHER_CTX *ctx, const char *pass, int passlen,

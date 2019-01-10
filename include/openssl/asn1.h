@@ -778,6 +778,10 @@ int ASN1_TYPE_set_int_octetstring(ASN1_TYPE *a, long num,
                                   unsigned char *data, int len);
 int ASN1_TYPE_get_int_octetstring(const ASN1_TYPE *a, long *num,
                                   unsigned char *data, int max_len);
+int ASN1_TYPE_set_octetstring_int(ASN1_TYPE *a, long num,
+                                  unsigned char *data, int len);
+int ASN1_TYPE_get_octetstring_int(const ASN1_TYPE *a, long *num,
+                                  unsigned char *data, int max_len);
 
 void *ASN1_item_unpack(const ASN1_STRING *oct, const ASN1_ITEM *it);
 
