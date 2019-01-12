@@ -4624,3 +4624,4 @@ ASN1_TYPE_set_octetstring_int           4579	3_0_0	EXIST::FUNCTION:
 ASN1_TYPE_get_octetstring_int           4580	3_0_0	EXIST::FUNCTION:
 EVP_CIPHER_set_asn1_aead_params         4581	3_0_0	EXIST::FUNCTION:
 EVP_CIPHER_get_asn1_aead_params         4582	3_0_0	EXIST::FUNCTION:
+CMS_AuthEnvelopedData_create            4583	3_0_0	EXIST::FUNCTION:CMS

@@ -53,6 +53,7 @@ struct CMS_ContentInfo_st {
         CMS_EnvelopedData *envelopedData;
         CMS_DigestedData *digestedData;
         CMS_EncryptedData *encryptedData;
+        CMS_AuthEnvelopedData *authEnvelopedData;
         CMS_AuthenticatedData *authenticatedData;
         CMS_CompressedData *compressedData;
         ASN1_TYPE *other;
@@ -415,7 +416,10 @@ int cms_msgSigDigest_add1(CMS_SignerInfo *dest, CMS_SignerInfo *src);
 ASN1_OCTET_STRING *cms_encode_Receipt(CMS_SignerInfo *si);
 
 BIO *cms_EnvelopedData_init_bio(CMS_ContentInfo *cms);
+BIO *cms_AuthEnvelopedData_init_bio(CMS_ContentInfo *cms);
 CMS_EnvelopedData *cms_get0_enveloped(CMS_ContentInfo *cms);
+CMS_AuthEnvelopedData *cms_get0_auth_enveloped(CMS_ContentInfo *cms);
+CMS_EncryptedContentInfo* cms_get0_env_enc_content(CMS_ContentInfo *cms);
 int cms_env_asn1_ctrl(CMS_RecipientInfo *ri, int cmd);
 int cms_pkey_get_ri_type(EVP_PKEY *pk);
 /* KARI routines */
@@ -432,6 +436,7 @@ DECLARE_ASN1_ITEM(CMS_CertificateChoices)
 DECLARE_ASN1_ITEM(CMS_DigestedData)
 DECLARE_ASN1_ITEM(CMS_EncryptedData)
 DECLARE_ASN1_ITEM(CMS_EnvelopedData)
+DECLARE_ASN1_ITEM(CMS_AuthEnvelopedData)
 DECLARE_ASN1_ITEM(CMS_KEKRecipientInfo)
 DECLARE_ASN1_ITEM(CMS_KeyAgreeRecipientInfo)
 DECLARE_ASN1_ITEM(CMS_KeyTransRecipientInfo)

@@ -90,6 +90,10 @@ BIO *CMS_dataInit(CMS_ContentInfo *cms, BIO *icont)
         cmsbio = cms_EnvelopedData_init_bio(cms);
         break;
 
+    case NID_id_smime_ct_authEnvelopedData:
+        cmsbio = cms_AuthEnvelopedData_init_bio(cms);
+        break;
+
     default:
         CMSerr(CMS_F_CMS_DATAINIT, CMS_R_UNSUPPORTED_TYPE);
         return NULL;
@@ -132,6 +136,7 @@ int CMS_dataFinal(CMS_ContentInfo *cms, BIO *cmsbio)
     case NID_pkcs7_data:
     case NID_pkcs7_enveloped:
     case NID_pkcs7_encrypted:
+    case NID_id_smime_ct_authEnvelopedData:
     case NID_id_smime_ct_compressedData:
         /* Nothing to do */
         return 1;
@@ -172,6 +177,10 @@ ASN1_OCTET_STRING **CMS_get0_content(CMS_ContentInfo *cms)
     case NID_pkcs7_encrypted:
         return &cms->d.encryptedData->encryptedContentInfo->encryptedContent;
 
+    case NID_id_smime_ct_authEnvelopedData:
+        return &cms->d.authEnvelopedData->authEncryptedContentInfo
+                                        ->encryptedContent;
+
     case NID_id_smime_ct_authData:
         return &cms->d.authenticatedData->encapContentInfo->eContent;
 
@@ -208,6 +217,9 @@ static ASN1_OBJECT **cms_get0_econtent_type(CMS_ContentInfo *cms)
     case NID_pkcs7_encrypted:
         return &cms->d.encryptedData->encryptedContentInfo->contentType;
 
+    case NID_id_smime_ct_authEnvelopedData:
+        return &cms->d.authEnvelopedData->authEncryptedContentInfo
+                                        ->contentType;
     case NID_id_smime_ct_authData:
         return &cms->d.authenticatedData->encapContentInfo->eContentType;
 
@@ -349,6 +361,11 @@ static STACK_OF(CMS_CertificateChoices)
             return NULL;
         return &cms->d.envelopedData->originatorInfo->certificates;
 
+    case NID_id_smime_ct_authEnvelopedData:
+        if (cms->d.authEnvelopedData->originatorInfo == NULL)
+            return NULL;
+        return &cms->d.authEnvelopedData->originatorInfo->certificates;
+
     default:
         CMSerr(CMS_F_CMS_GET0_CERTIFICATE_CHOICES,
                CMS_R_UNSUPPORTED_CONTENT_TYPE);
@@ -425,6 +442,11 @@ static STACK_OF(CMS_RevocationInfoChoice)
         if (cms->d.envelopedData->originatorInfo == NULL)
             return NULL;
         return &cms->d.envelopedData->originatorInfo->crls;
+
+    case NID_id_smime_ct_authEnvelopedData:
+        if (cms->d.authEnvelopedData->originatorInfo == NULL)
+            return NULL;
+        return &cms->d.authEnvelopedData->originatorInfo->crls;
 
     default:
         CMSerr(CMS_F_CMS_GET0_REVOCATION_CHOICES,

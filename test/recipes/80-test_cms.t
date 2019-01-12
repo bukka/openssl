@@ -167,9 +167,19 @@ my @smime_pkcs7_tests = (
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],
 
-    [ "enveloped content test streaming S/MIME format, AES-256 cipher, 3 recipients",
+    [ "enveloped content test streaming S/MIME format, AES-256-CBC cipher, 3 recipients",
       [ "-encrypt", "-in", $smcont,
 	"-aes256", "-stream", "-out", "test.cms",
+	catfile($smdir, "smrsa1.pem"),
+	catfile($smdir, "smrsa2.pem"),
+	catfile($smdir, "smrsa3.pem") ],
+      [ "-decrypt", "-recip", catfile($smdir, "smrsa1.pem"),
+	"-in", "test.cms", "-out", "smtst.txt" ]
+    ],
+
+    [ "enveloped content test streaming S/MIME format, AES-256-GCM cipher, 3 recipients",
+      [ "-encrypt", "-in", $smcont,
+	"-aes-256-gcm", "-stream", "-out", "test.cms",
 	catfile($smdir, "smrsa1.pem"),
 	catfile($smdir, "smrsa2.pem"),
 	catfile($smdir, "smrsa3.pem") ],
