@@ -549,7 +549,10 @@ CMS_ContentInfo *CMS_encrypt(STACK_OF(X509) *certs, BIO *data,
     CMS_ContentInfo *cms;
     int i;
     X509 *recip;
-    cms = CMS_EnvelopedData_create(cipher);
+
+    cms = (EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER)
+          ? CMS_AuthEnvelopedData_create(cipher)
+          : CMS_EnvelopedData_create(cipher);
     if (!cms)
         goto merr;
     for (i = 0; i < sk_X509_num(certs); i++) {
