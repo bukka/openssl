@@ -74,12 +74,25 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
         if (ivlen > 0) {
             if (RAND_bytes(iv, ivlen) <= 0)
                 goto err;
-            piv = iv;
+            if (!(EVP_CIPHER_flags(ciph) & EVP_CIPH_FLAG_AEAD_CIPHER)
+                    || EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_SET_IV, ivlen,
+                                           iv) <= 0)
+                piv = iv;
         }
-    } else if (EVP_CIPHER_asn1_to_param(ctx, calg->parameter) <= 0) {
-        CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO,
-               CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR);
-        goto err;
+    } else {
+        if (EVP_CIPHER_asn1_to_param(ctx, calg->parameter) <= 0) {
+            CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO,
+                   CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR);
+            goto err;
+        }
+        if ((EVP_CIPHER_flags(ciph) & EVP_CIPH_FLAG_AEAD_CIPHER)
+                && ec->taglen > 0
+                && EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, ec->taglen,
+                                       ec->tag) <= 0) {
+            CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO,
+                   CMS_R_CIPHER_AEAD_SET_TAG_ERROR);
+            goto err;
+        }
     }
     tkeylen = EVP_CIPHER_CTX_key_length(ctx);
     /* Generate random session key */

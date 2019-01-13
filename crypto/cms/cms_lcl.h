@@ -121,10 +121,12 @@ struct CMS_EncryptedContentInfo_st {
     ASN1_OBJECT *contentType;
     X509_ALGOR *contentEncryptionAlgorithm;
     ASN1_OCTET_STRING *encryptedContent;
-    /* Content encryption algorithm and key */
+    /* Content encryption algorithm, key and tag */
     const EVP_CIPHER *cipher;
     unsigned char *key;
     size_t keylen;
+    unsigned char *tag;
+    size_t taglen;
     /* Set to 1 if we are debugging decrypt and don't fake keys for MMA */
     int debug;
 };
@@ -417,6 +419,7 @@ ASN1_OCTET_STRING *cms_encode_Receipt(CMS_SignerInfo *si);
 
 BIO *cms_EnvelopedData_init_bio(CMS_ContentInfo *cms);
 BIO *cms_AuthEnvelopedData_init_bio(CMS_ContentInfo *cms);
+int cms_AuthEnvelopedData_final(CMS_ContentInfo *cms, BIO *cmsbio);
 CMS_EnvelopedData *cms_get0_enveloped(CMS_ContentInfo *cms);
 CMS_AuthEnvelopedData *cms_get0_auth_enveloped(CMS_ContentInfo *cms);
 CMS_EncryptedContentInfo* cms_get0_env_enc_content(CMS_ContentInfo *cms);

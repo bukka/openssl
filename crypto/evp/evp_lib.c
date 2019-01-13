@@ -162,7 +162,7 @@ int EVP_CIPHER_set_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
         return -1;
     }
 
-    ivl = EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_GET_IVLEN, 0, NULL);
+    ivl = EVP_CIPHER_CTX_iv_length(c);
     if (ivl <= 0 || EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_GET_IV, ivl, iv) <= 0)
         return -1;
     tl = EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_GET_TAGLEN, 0, NULL);

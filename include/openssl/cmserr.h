@@ -32,6 +32,7 @@ int ERR_load_CMS_strings(void);
 #  define CMS_F_CMS_ADD1_SIGNER                            102
 #  define CMS_F_CMS_ADD1_SIGNINGTIME                       103
 #  define CMS_F_CMS_AUTHENVELOPEDDATA_CREATE               181
+#  define CMS_F_CMS_AUTHENVELOPEDDATA_FINAL                186
 #  define CMS_F_CMS_AUTHENVELOPEDDATA_INIT_BIO             182
 #  define CMS_F_CMS_AUTH_ENVELOPED_DATA_INIT               183
 #  define CMS_F_CMS_COMPRESS                               104
@@ -118,6 +119,8 @@ int ERR_load_CMS_strings(void);
 #  define CMS_R_CERTIFICATE_ALREADY_PRESENT                175
 #  define CMS_R_CERTIFICATE_HAS_NO_KEYID                   160
 #  define CMS_R_CERTIFICATE_VERIFY_ERROR                   100
+#  define CMS_R_CIPHER_AEAD_SET_TAG_ERROR                  161
+#  define CMS_R_CIPHER_GET_TAG                             182
 #  define CMS_R_CIPHER_INITIALISATION_ERROR                101
 #  define CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR      102
 #  define CMS_R_CMS_DATAFINAL_ERROR                        103

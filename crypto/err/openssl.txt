@@ -244,6 +244,7 @@ CMS_F_CMS_ADD1_RECIPIENT_CERT:101:CMS_add1_recipient_cert
 CMS_F_CMS_ADD1_SIGNER:102:CMS_add1_signer
 CMS_F_CMS_ADD1_SIGNINGTIME:103:cms_add1_signingTime
 CMS_F_CMS_AUTHENVELOPEDDATA_CREATE:181:CMS_AuthEnvelopedData_create
+CMS_F_CMS_AUTHENVELOPEDDATA_FINAL:186:cms_AuthEnvelopedData_final
 CMS_F_CMS_AUTHENVELOPEDDATA_INIT_BIO:182:cms_AuthEnvelopedData_init_bio
 CMS_F_CMS_AUTH_ENVELOPED_DATA_INIT:183:cms_auth_enveloped_data_init
 CMS_F_CMS_COMPRESS:104:CMS_compress
@@ -1948,6 +1949,8 @@ CMS_R_ADD_SIGNER_ERROR:99:add signer error
 CMS_R_CERTIFICATE_ALREADY_PRESENT:175:certificate already present
 CMS_R_CERTIFICATE_HAS_NO_KEYID:160:certificate has no keyid
 CMS_R_CERTIFICATE_VERIFY_ERROR:100:certificate verify error
+CMS_R_CIPHER_AEAD_SET_TAG_ERROR:161:cipher aead set tag error
+CMS_R_CIPHER_GET_TAG:182:cipher get tag
 CMS_R_CIPHER_INITIALISATION_ERROR:101:cipher initialisation error
 CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR:102:\
 	cipher parameter initialisation error

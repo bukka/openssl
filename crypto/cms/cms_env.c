@@ -79,7 +79,8 @@ static CMS_EnvelopedData *cms_enveloped_data_init(CMS_ContentInfo *cms)
     return cms_get0_enveloped(cms);
 }
 
-static CMS_AuthEnvelopedData *cms_auth_enveloped_data_init(CMS_ContentInfo *cms)
+static CMS_AuthEnvelopedData *
+cms_auth_enveloped_data_init(CMS_ContentInfo *cms)
 {
     if (cms->d.other == NULL) {
         cms->d.authEnvelopedData = M_ASN1_new_of(CMS_AuthEnvelopedData);
@@ -1008,9 +1009,15 @@ BIO *cms_AuthEnvelopedData_init_bio(CMS_ContentInfo *cms)
     STACK_OF(CMS_RecipientInfo) *rinfos;
     int ok = 0;
     BIO *ret;
+    CMS_AuthEnvelopedData *aenv = cms->d.authEnvelopedData;
 
     /* Get BIO first to set up key */
-    ec = cms->d.authEnvelopedData->authEncryptedContentInfo;
+    ec = aenv->authEncryptedContentInfo;
+    /* Set tag for decryption */
+    if (ec->cipher == NULL) {
+        ec->tag = aenv->mac->data;
+        ec->taglen = aenv->mac->length;
+    }
     ret = cms_EncryptedContent_init_bio(ec);
 
     /* If error or no cipher end of processing */
@@ -1018,7 +1025,7 @@ BIO *cms_AuthEnvelopedData_init_bio(CMS_ContentInfo *cms)
         return ret;
 
     /* Now encrypt content key according to each RecipientInfo type */
-    rinfos = cms->d.authEnvelopedData->recipientInfos;
+    rinfos = aenv->recipientInfos;
     if (cms_env_encrypt_content_key(cms, rinfos) < 0) {
         CMSerr(CMS_F_CMS_AUTHENVELOPEDDATA_INIT_BIO,
                CMS_R_ERROR_SETTING_RECIPIENTINFO);
@@ -1026,7 +1033,7 @@ BIO *cms_AuthEnvelopedData_init_bio(CMS_ContentInfo *cms)
     }
 
     /* And finally set the version */
-    cms->d.authEnvelopedData->version = 0;
+    aenv->version = 0;
 
     ok = 1;
 
@@ -1036,6 +1043,34 @@ BIO *cms_AuthEnvelopedData_init_bio(CMS_ContentInfo *cms)
         return ret;
     BIO_free(ret);
     return NULL;
+}
+
+int cms_AuthEnvelopedData_final(CMS_ContentInfo *cms, BIO *cmsbio)
+{
+    EVP_CIPHER_CTX *ctx;
+    unsigned char *tag;
+    int taglen;
+
+    BIO_get_cipher_ctx(cmsbio, &ctx);
+
+    /* Do nothing when decrypting */
+    if (!EVP_CIPHER_CTX_encrypting(ctx)) {
+        return 1;
+    }
+
+    taglen = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAGLEN, 0, NULL);
+    if (taglen <= 0
+            || (tag = OPENSSL_malloc(taglen)) == NULL
+            || EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, taglen,
+                                   tag) <= 0) {
+        CMSerr(CMS_F_CMS_AUTHENVELOPEDDATA_FINAL, CMS_R_CIPHER_GET_TAG);
+        return 0;
+    }
+
+    if (!ASN1_OCTET_STRING_set(cms->d.authEnvelopedData->mac, tag, taglen))
+        return 0;
+
+    return 1;
 }
 
 /*

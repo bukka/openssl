@@ -609,7 +609,7 @@ int CMS_decrypt_set1_pkey(CMS_ContentInfo *cms, EVP_PKEY *pk, X509 *cert)
     int debug = 0, match_ri = 0;
     ris = CMS_get0_RecipientInfos(cms);
     if (ris)
-        debug = cms->d.envelopedData->encryptedContentInfo->debug;
+        debug = cms_get0_env_enc_content(cms)->debug;
     ri_type = cms_pkey_get_ri_type(pk);
     if (ri_type == CMS_RECIPINFO_NONE) {
         CMSerr(CMS_F_CMS_DECRYPT_SET1_PKEY,
@@ -736,16 +736,19 @@ int CMS_decrypt(CMS_ContentInfo *cms, EVP_PKEY *pk, X509 *cert,
 {
     int r;
     BIO *cont;
-    if (OBJ_obj2nid(CMS_get0_type(cms)) != NID_pkcs7_enveloped) {
+    int nid = OBJ_obj2nid(CMS_get0_type(cms));
+
+    if (nid != NID_pkcs7_enveloped
+            || nid != NID_id_smime_ct_authEnvelopedData) {
         CMSerr(CMS_F_CMS_DECRYPT, CMS_R_TYPE_NOT_ENVELOPED_DATA);
         return 0;
     }
     if (!dcont && !check_content(cms))
         return 0;
     if (flags & CMS_DEBUG_DECRYPT)
-        cms->d.envelopedData->encryptedContentInfo->debug = 1;
+        cms_get0_env_enc_content(cms)->debug = 1;
     else
-        cms->d.envelopedData->encryptedContentInfo->debug = 0;
+        cms_get0_env_enc_content(cms)->debug = 0;
     if (!pk && !cert && !dcont && !out)
         return 1;
     if (pk && !CMS_decrypt_set1_pkey(cms, pk, cert))
