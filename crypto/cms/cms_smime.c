@@ -739,7 +739,7 @@ int CMS_decrypt(CMS_ContentInfo *cms, EVP_PKEY *pk, X509 *cert,
     int nid = OBJ_obj2nid(CMS_get0_type(cms));
 
     if (nid != NID_pkcs7_enveloped
-            || nid != NID_id_smime_ct_authEnvelopedData) {
+            && nid != NID_id_smime_ct_authEnvelopedData) {
         CMSerr(CMS_F_CMS_DECRYPT, CMS_R_TYPE_NOT_ENVELOPED_DATA);
         return 0;
     }
