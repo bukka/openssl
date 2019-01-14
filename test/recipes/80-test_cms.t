@@ -176,17 +176,6 @@ my @smime_pkcs7_tests = (
       [ "-decrypt", "-recip", catfile($smdir, "smrsa1.pem"),
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],
-
-    [ "enveloped content test streaming S/MIME format, AES-256-GCM cipher, 3 recipients",
-      [ "-encrypt", "-in", $smcont,
-	"-aes-256-gcm", "-stream", "-out", "test.cms",
-	catfile($smdir, "smrsa1.pem"),
-	catfile($smdir, "smrsa2.pem"),
-	catfile($smdir, "smrsa3.pem") ],
-      [ "-decrypt", "-recip", catfile($smdir, "smrsa1.pem"),
-	"-in", "test.cms", "-out", "smtst.txt" ]
-    ],
-
 );
 
 my @smime_cms_tests = (
@@ -380,6 +369,14 @@ my @smime_cms_param_tests = (
       [ "-encrypt", "-in", $smcont,
 	"-stream", "-out", "test.cms",
 	"-recip", catfile($smdir, "smec1.pem"), "-aes128", "-keyopt", "ecdh_kdf_md:sha256" ],
+      [ "-decrypt", "-recip", catfile($smdir, "smec1.pem"),
+	"-in", "test.cms", "-out", "smtst.txt" ]
+    ],
+
+    [ "enveloped content test streaming S/MIME format, ECDH, AES-128-GCM, SHA256 KDF",
+      [ "-encrypt", "-in", $smcont,
+	"-stream", "-out", "test.cms",
+	"-recip", catfile($smdir, "smec1.pem"), "-aes-128-gcm", "-keyopt", "ecdh_kdf_md:sha256" ],
       [ "-decrypt", "-recip", catfile($smdir, "smec1.pem"),
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],
