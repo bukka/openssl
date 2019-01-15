@@ -44,6 +44,10 @@ int ERR_load_CMS_strings(void);
 #   define CMS_F_CMS_ADD1_SIGNINGTIME                       0
 #   define CMS_F_CMS_ADD1_SIGNING_CERT                      0
 #   define CMS_F_CMS_ADD1_SIGNING_CERT_V2                   0
+#   define CMS_F_CMS_AUTHENVELOPEDDATA_CREATE               0
+#   define CMS_F_CMS_AUTHENVELOPEDDATA_FINAL                0
+#   define CMS_F_CMS_AUTHENVELOPEDDATA_INIT_BIO             0
+#   define CMS_F_CMS_AUTH_ENVELOPED_DATA_INIT               0
 #   define CMS_F_CMS_COMPRESS                               0
 #   define CMS_F_CMS_COMPRESSEDDATA_CREATE                  0
 #   define CMS_F_CMS_COMPRESSEDDATA_INIT_BIO                0
@@ -72,12 +76,14 @@ int ERR_load_CMS_strings(void);
 #   define CMS_F_CMS_ENVELOPED_DATA_INIT                    0
 #   define CMS_F_CMS_ENV_ASN1_CTRL                          0
 #   define CMS_F_CMS_FINAL                                  0
+#   define CMS_F_CMS_GET0_AUTH_ENVELOPED                    0
 #   define CMS_F_CMS_GET0_CERTIFICATE_CHOICES               0
 #   define CMS_F_CMS_GET0_CONTENT                           0
 #   define CMS_F_CMS_GET0_ECONTENT_TYPE                     0
 #   define CMS_F_CMS_GET0_ENVELOPED                         0
 #   define CMS_F_CMS_GET0_REVOCATION_CHOICES                0
 #   define CMS_F_CMS_GET0_SIGNED                            0
+#   define CMS_F_CMS_GET_ENVELOPED_TYPE                     0
 #   define CMS_F_CMS_MSGSIGDIGEST_ADD1                      0
 #   define CMS_F_CMS_RECEIPTREQUEST_CREATE0                 0
 #   define CMS_F_CMS_RECEIPT_VERIFY                         0
@@ -129,6 +135,8 @@ int ERR_load_CMS_strings(void);
 #  define CMS_R_CERTIFICATE_ALREADY_PRESENT                175
 #  define CMS_R_CERTIFICATE_HAS_NO_KEYID                   160
 #  define CMS_R_CERTIFICATE_VERIFY_ERROR                   100
+#  define CMS_R_CIPHER_AEAD_SET_TAG_ERROR                  182
+#  define CMS_R_CIPHER_GET_TAG                             183
 #  define CMS_R_CIPHER_INITIALISATION_ERROR                101
 #  define CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR      102
 #  define CMS_R_CMS_DATAFINAL_ERROR                        103

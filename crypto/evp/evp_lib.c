@@ -15,6 +15,7 @@
 #include <openssl/core_names.h>
 #include <openssl/dh.h>
 #include "crypto/evp.h"
+#include "crypto/asn1.h"
 #include "internal/provider.h"
 #include "evp_local.h"
 
@@ -49,6 +50,9 @@ int EVP_CIPHER_param_to_asn1(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
             break;
 
         case EVP_CIPH_GCM_MODE:
+            ret = evp_cipher_set_asn1_aead_params(c, type);
+            break;
+
         case EVP_CIPH_CCM_MODE:
         case EVP_CIPH_XTS_MODE:
         case EVP_CIPH_OCB_MODE:
@@ -94,6 +98,9 @@ int EVP_CIPHER_asn1_to_param(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
             break;
 
         case EVP_CIPH_GCM_MODE:
+            ret = evp_cipher_get_asn1_aead_params(c, type);
+            break;
+
         case EVP_CIPH_CCM_MODE:
         case EVP_CIPH_XTS_MODE:
         case EVP_CIPH_OCB_MODE:
@@ -147,6 +154,50 @@ int EVP_CIPHER_set_asn1_iv(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
         i = ASN1_TYPE_set_octetstring(type, c->oiv, j);
     }
     return i;
+}
+
+int evp_cipher_get_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
+{
+    int i = 0;
+    long tl;
+    unsigned char iv[EVP_MAX_IV_LENGTH];
+
+    if (type == NULL)
+        return i;
+
+    i = asn1_type_get_octetstring_int(type, &tl, NULL, EVP_MAX_IV_LENGTH);
+    if (i <= 0)
+        return -1;
+    asn1_type_get_octetstring_int(type, &tl, iv, i);
+
+    if (EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_SET_IVLEN, i, NULL) <= 0
+            || EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_SET_IV, i, iv) <= 0)
+        return -1;
+
+    return i;
+}
+
+
+int evp_cipher_set_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
+{
+    int ivl, tl;
+    unsigned char iv[EVP_MAX_IV_LENGTH];
+
+    if (type == NULL)
+        return 0;
+
+    tl = EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_GET_TAGLEN, 0, NULL);
+    if (tl <= 0)
+        return -1;
+
+    ivl = EVP_CIPHER_CTX_iv_length(c);
+    if (ivl <= 0)
+        return -1;
+
+    if (EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_GET_IV, ivl, iv) > 0)
+        return asn1_type_set_octetstring_int(type, tl, iv, ivl);
+
+    return 0;
 }
 #endif /* !defined(FIPS_MODE) */
 

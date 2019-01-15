@@ -168,7 +168,7 @@ my @smime_pkcs7_tests = (
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],
 
-    [ "enveloped content test streaming S/MIME format, AES-256 cipher, 3 recipients",
+    [ "enveloped content test streaming S/MIME format, AES-256-CBC cipher, 3 recipients",
       [ "-encrypt", "-in", $smcont,
 	"-aes256", "-stream", "-out", "test.cms",
 	catfile($smdir, "smrsa1.pem"),
@@ -177,7 +177,6 @@ my @smime_pkcs7_tests = (
       [ "-decrypt", "-recip", catfile($smdir, "smrsa1.pem"),
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],
-
 );
 
 my @smime_cms_tests = (
@@ -246,8 +245,18 @@ my @smime_cms_tests = (
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],
 
-    [ "enveloped content test streaming PEM format, KEK",
+    [ "enveloped content test streaming PEM format, AES-256-CBC cipher, KEK",
       [ "-encrypt", "-in", $smcont, "-outform", "PEM", "-aes128",
+	"-stream", "-out", "test.cms",
+	"-secretkey", "000102030405060708090A0B0C0D0E0F",
+	"-secretkeyid", "C0FEE0" ],
+      [ "-decrypt", "-in", "test.cms", "-out", "smtst.txt", "-inform", "PEM",
+	"-secretkey", "000102030405060708090A0B0C0D0E0F",
+	"-secretkeyid", "C0FEE0" ]
+    ],
+
+    [ "enveloped content test streaming PEM format, AES-256-GCM cipher, KEK",
+      [ "-encrypt", "-in", $smcont, "-outform", "PEM", "-aes-128-gcm",
 	"-stream", "-out", "test.cms",
 	"-secretkey", "000102030405060708090A0B0C0D0E0F",
 	"-secretkeyid", "C0FEE0" ],
@@ -391,10 +400,18 @@ my @smime_cms_param_tests = (
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],
 
-    [ "enveloped content test streaming S/MIME format, ECDH, AES128, SHA256 KDF",
+    [ "enveloped content test streaming S/MIME format, ECDH, AES-128-CBC cipher, SHA256 KDF",
       [ "-encrypt", "-in", $smcont,
 	"-stream", "-out", "test.cms",
 	"-recip", catfile($smdir, "smec1.pem"), "-aes128", "-keyopt", "ecdh_kdf_md:sha256" ],
+      [ "-decrypt", "-recip", catfile($smdir, "smec1.pem"),
+	"-in", "test.cms", "-out", "smtst.txt" ]
+    ],
+
+    [ "enveloped content test streaming S/MIME format, ECDH, AES-128-GCM cipher, SHA256 KDF",
+      [ "-encrypt", "-in", $smcont,
+	"-stream", "-out", "test.cms",
+	"-recip", catfile($smdir, "smec1.pem"), "-aes-128-gcm", "-keyopt", "ecdh_kdf_md:sha256" ],
       [ "-decrypt", "-recip", catfile($smdir, "smec1.pem"),
 	"-in", "test.cms", "-out", "smtst.txt" ]
     ],

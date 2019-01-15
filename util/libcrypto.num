@@ -4822,3 +4822,4 @@ OSSL_CMP_log_close                      4938	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_print_errors_cb                4939	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CRMF_CERTID_get0_issuer            4940	3_0_0	EXIST::FUNCTION:CRMF
 OSSL_CRMF_CERTID_get0_serialNumber      4941	3_0_0	EXIST::FUNCTION:CRMF
+CMS_AuthEnvelopedData_create            4942	3_0_0	EXIST::FUNCTION:CMS

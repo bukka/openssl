@@ -202,6 +202,9 @@ EVP_KEYMGMT *evp_keymgmt_fetch_by_number(OPENSSL_CTX *ctx, int name_id,
 EVP_MD *evp_md_new(void);
 EVP_CIPHER *evp_cipher_new(void);
 
+int evp_cipher_get_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
+int evp_cipher_set_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
+
 /* Helper functions to avoid duplicating code */
 
 /*

@@ -29,6 +29,7 @@ typedef struct CMS_EnvelopedData_st CMS_EnvelopedData;
 typedef struct CMS_DigestedData_st CMS_DigestedData;
 typedef struct CMS_EncryptedData_st CMS_EncryptedData;
 typedef struct CMS_AuthenticatedData_st CMS_AuthenticatedData;
+typedef struct CMS_AuthEnvelopedData_st CMS_AuthEnvelopedData;
 typedef struct CMS_CompressedData_st CMS_CompressedData;
 typedef struct CMS_OtherCertificateFormat_st CMS_OtherCertificateFormat;
 typedef struct CMS_KeyTransRecipientInfo_st CMS_KeyTransRecipientInfo;
@@ -52,6 +53,7 @@ struct CMS_ContentInfo_st {
         CMS_EnvelopedData *envelopedData;
         CMS_DigestedData *digestedData;
         CMS_EncryptedData *encryptedData;
+        CMS_AuthEnvelopedData *authEnvelopedData;
         CMS_AuthenticatedData *authenticatedData;
         CMS_CompressedData *compressedData;
         ASN1_TYPE *other;
@@ -119,10 +121,12 @@ struct CMS_EncryptedContentInfo_st {
     ASN1_OBJECT *contentType;
     X509_ALGOR *contentEncryptionAlgorithm;
     ASN1_OCTET_STRING *encryptedContent;
-    /* Content encryption algorithm and key */
+    /* Content encryption algorithm, key and tag */
     const EVP_CIPHER *cipher;
     unsigned char *key;
     size_t keylen;
+    unsigned char *tag;
+    size_t taglen;
     /* Set to 1 if we are debugging decrypt and don't fake keys for MMA */
     int debug;
     /* Set to 1 if we have no cert and need extra safety measures for MMA */
@@ -252,6 +256,16 @@ struct CMS_AuthenticatedData_st {
     X509_ALGOR *macAlgorithm;
     X509_ALGOR *digestAlgorithm;
     CMS_EncapsulatedContentInfo *encapContentInfo;
+    STACK_OF(X509_ATTRIBUTE) *authAttrs;
+    ASN1_OCTET_STRING *mac;
+    STACK_OF(X509_ATTRIBUTE) *unauthAttrs;
+};
+
+struct CMS_AuthEnvelopedData_st {
+    int32_t version;
+    CMS_OriginatorInfo *originatorInfo;
+    STACK_OF(CMS_RecipientInfo) *recipientInfos;
+    CMS_EncryptedContentInfo *authEncryptedContentInfo;
     STACK_OF(X509_ATTRIBUTE) *authAttrs;
     ASN1_OCTET_STRING *mac;
     STACK_OF(X509_ATTRIBUTE) *unauthAttrs;
@@ -403,7 +417,11 @@ int cms_msgSigDigest_add1(CMS_SignerInfo *dest, CMS_SignerInfo *src);
 ASN1_OCTET_STRING *cms_encode_Receipt(CMS_SignerInfo *si);
 
 BIO *cms_EnvelopedData_init_bio(const CMS_ContentInfo *cms);
-CMS_EnvelopedData *cms_get0_enveloped(CMS_ContentInfo *cms);
+BIO *cms_AuthEnvelopedData_init_bio(const CMS_ContentInfo *cms);
+int cms_AuthEnvelopedData_final(CMS_ContentInfo *cms, BIO *cmsbio);
+CMS_EnvelopedData *cms_get0_enveloped(const CMS_ContentInfo *cms);
+CMS_AuthEnvelopedData *cms_get0_auth_enveloped(const CMS_ContentInfo *cms);
+CMS_EncryptedContentInfo* cms_get0_env_enc_content(const CMS_ContentInfo *cms);
 int cms_env_asn1_ctrl(CMS_RecipientInfo *ri, int cmd);
 int cms_pkey_get_ri_type(EVP_PKEY *pk);
 /* KARI routines */
@@ -422,6 +440,7 @@ DECLARE_ASN1_ITEM(CMS_CertificateChoices)
 DECLARE_ASN1_ITEM(CMS_DigestedData)
 DECLARE_ASN1_ITEM(CMS_EncryptedData)
 DECLARE_ASN1_ITEM(CMS_EnvelopedData)
+DECLARE_ASN1_ITEM(CMS_AuthEnvelopedData)
 DECLARE_ASN1_ITEM(CMS_KEKRecipientInfo)
 DECLARE_ASN1_ITEM(CMS_KeyAgreeRecipientInfo)
 DECLARE_ASN1_ITEM(CMS_KeyTransRecipientInfo)

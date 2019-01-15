@@ -488,7 +488,6 @@ const EVP_CIPHER *EVP_##cname##_ecb(void) { return &cname##_ecb; }
                              (fl)|EVP_CIPH_FLAG_DEFAULT_ASN1, \
                              cipher##_init_key, NULL, NULL, NULL, NULL)
 
-
 # ifndef OPENSSL_NO_EC
 
 #define X25519_KEYLEN        32
@@ -611,6 +610,7 @@ const OSSL_PARAM *evp_keymgmt_exportkey_types(const EVP_KEYMGMT *keymgmt);
 #endif
 
 void evp_encode_ctx_set_flags(EVP_ENCODE_CTX *ctx, unsigned int flags);
+
 
 /* EVP_ENCODE_CTX flags */
 /* Don't generate new lines when encoding */

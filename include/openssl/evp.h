@@ -369,6 +369,10 @@ int (*EVP_CIPHER_meth_get_ctrl(const EVP_CIPHER *cipher))(EVP_CIPHER_CTX *,
 # define         EVP_CTRL_GET_IV                         0x26
 /* Tell the cipher it's doing a speed test (SIV disallows multiple ops) */
 # define         EVP_CTRL_SET_SPEED                      0x27
+/* Set the IV used by the cipher */
+# define         EVP_CTRL_SET_IV                         0x28
+/* Get the tag length for AEAD cipher */
+# define         EVP_CTRL_AEAD_GET_TAGLEN                0x29
 
 /* Padding modes */
 #define EVP_PADDING_PKCS7       1

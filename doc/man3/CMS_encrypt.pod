@@ -13,9 +13,10 @@ CMS_encrypt - create a CMS envelopedData structure
 
 =head1 DESCRIPTION
 
-CMS_encrypt() creates and returns a CMS EnvelopedData structure. B<certs>
-is a list of recipient certificates. B<in> is the content to be encrypted.
-B<cipher> is the symmetric cipher to use. B<flags> is an optional set of flags.
+CMS_encrypt() creates and returns a CMS EnvelopedData or AuthEnvelopedData
+structure. B<certs> is a list of recipient certificates. B<in> is the content
+to be encrypted. B<cipher> is the symmetric cipher to use. B<flags> is
+an optional set of flags.
 
 Only certificates carrying RSA, Diffie-Hellman or EC keys are supported by this
 function.
@@ -24,7 +25,9 @@ EVP_des_ede3_cbc() (triple DES) is the algorithm of choice for S/MIME use
 because most clients will support it.
 
 The algorithm passed in the B<cipher> parameter must support ASN1 encoding of
-its parameters.
+its parameters. If the cipher mode is GCM, then an AuthEnvelopedData structure
+containing MAC is used. Otherwise an EnvelopedData structure is used. Currently
+the AES variants with GCM mode are the only supported AEAD algorithms.
 
 Many browsers implement a "sign and encrypt" option which is simply an S/MIME
 envelopedData containing an S/MIME signed message. This can be readily produced
