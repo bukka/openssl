@@ -14,6 +14,7 @@
 #include <openssl/err.h>
 #include <openssl/cms.h>
 #include <openssl/rand.h>
+#include "crypto/evp.h"
 #include "cms_local.h"
 
 /* CMS EncryptedData Utilities */
@@ -26,8 +27,10 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
     EVP_CIPHER_CTX *ctx;
     const EVP_CIPHER *ciph;
     X509_ALGOR *calg = ec->contentEncryptionAlgorithm;
+    evp_cipher_aead_asn1_params aparams;
     unsigned char iv[EVP_MAX_IV_LENGTH], *piv = NULL;
     unsigned char *tkey = NULL;
+    int ivlen;
     size_t tkeylen = 0;
 
     int ok = 0;
@@ -67,7 +70,6 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
     }
 
     if (enc) {
-        int ivlen;
         calg->algorithm = OBJ_nid2obj(EVP_CIPHER_CTX_type(ctx));
         /* Generate a random IV if we need one */
         ivlen = EVP_CIPHER_CTX_iv_length(ctx);
@@ -80,18 +82,20 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
                 piv = iv;
         }
     } else {
-        if (EVP_CIPHER_asn1_to_param(ctx, calg->parameter) <= 0) {
+        if (evp_cipher_asn1_to_param_ex(ctx, calg->parameter, &aparams) <= 0) {
             CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO,
                    CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR);
             goto err;
         }
-        if ((EVP_CIPHER_flags(ciph) & EVP_CIPH_FLAG_AEAD_CIPHER)
-                && ec->taglen > 0
-                && EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, ec->taglen,
-                                       ec->tag) <= 0) {
-            CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO,
-                   CMS_R_CIPHER_AEAD_SET_TAG_ERROR);
-            goto err;
+        if ((EVP_CIPHER_flags(ciph) & EVP_CIPH_FLAG_AEAD_CIPHER)) {
+            piv = aparams.iv;
+            if (ec->taglen > 0
+                    && EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG,
+                                           ec->taglen, ec->tag) <= 0) {
+                CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO,
+                    CMS_R_CIPHER_AEAD_SET_TAG_ERROR);
+                goto err;
+            }
         }
     }
     tkeylen = EVP_CIPHER_CTX_key_length(ctx);
@@ -150,7 +154,17 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
             CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO, ERR_R_MALLOC_FAILURE);
             goto err;
         }
-        if (EVP_CIPHER_param_to_asn1(ctx, calg->parameter) <= 0) {
+        if ((EVP_CIPHER_flags(ciph) & EVP_CIPH_FLAG_AEAD_CIPHER)) {
+            memcpy(aparams.iv, piv, ivlen);
+            aparams.iv_len = ivlen;
+            aparams.tag_len = EVP_CIPHER_CTX_ctrl(ctx,
+                                                  EVP_CTRL_AEAD_GET_TAGLEN, 0,
+                                                  NULL);
+            if (aparams.tag_len <= 0)
+                goto err;
+        }
+
+        if (evp_cipher_param_to_asn1_ex(ctx, calg->parameter, &aparams) <= 0) {
             CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO,
                    CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR);
             goto err;

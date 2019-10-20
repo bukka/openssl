@@ -22,104 +22,12 @@
 #if !defined(FIPS_MODE)
 int EVP_CIPHER_param_to_asn1(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
 {
-    int ret;
-    const EVP_CIPHER *cipher = c->cipher;
-
-    if (cipher->prov != NULL) {
-        /*
-         * The cipher has come from a provider and won't have the default flags.
-         * Find the implicit form so we can check the flags.
-         * TODO(3.0): This won't work for 3rd party ciphers we know nothing about
-         * We'll need to think of something else for those.
-         */
-        cipher = EVP_get_cipherbynid(cipher->nid);
-        if (cipher == NULL) {
-            EVPerr(EVP_F_EVP_CIPHER_PARAM_TO_ASN1, ASN1_R_UNSUPPORTED_CIPHER);
-            return -1;
-        }
-    }
-
-    if (cipher->set_asn1_parameters != NULL)
-        ret = cipher->set_asn1_parameters(c, type);
-    else if (cipher->flags & EVP_CIPH_FLAG_DEFAULT_ASN1) {
-        switch (EVP_CIPHER_mode(cipher)) {
-        case EVP_CIPH_WRAP_MODE:
-            if (EVP_CIPHER_nid(cipher) == NID_id_smime_alg_CMS3DESwrap)
-                ASN1_TYPE_set(type, V_ASN1_NULL, NULL);
-            ret = 1;
-            break;
-
-        case EVP_CIPH_GCM_MODE:
-            ret = evp_cipher_set_asn1_aead_params(c, type);
-            break;
-
-        case EVP_CIPH_CCM_MODE:
-        case EVP_CIPH_XTS_MODE:
-        case EVP_CIPH_OCB_MODE:
-            ret = -2;
-            break;
-
-        default:
-            ret = EVP_CIPHER_set_asn1_iv(c, type);
-        }
-    } else
-        ret = -1;
-    if (ret == -2)
-        EVPerr(EVP_F_EVP_CIPHER_PARAM_TO_ASN1, ASN1_R_UNSUPPORTED_CIPHER);
-    else if (ret <= 0)
-        EVPerr(EVP_F_EVP_CIPHER_PARAM_TO_ASN1, EVP_R_CIPHER_PARAMETER_ERROR);
-    if (ret < -1)
-        ret = -1;
-    return ret;
+    return evp_cipher_param_to_asn1_ex(c, type, NULL);
 }
 
 int EVP_CIPHER_asn1_to_param(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
 {
-    int ret;
-    const EVP_CIPHER *cipher = c->cipher;
-
-    if (cipher->prov != NULL) {
-        /*
-         * The cipher has come from a provider and won't have the default flags.
-         * Find the implicit form so we can check the flags.
-         */
-        cipher = EVP_get_cipherbynid(cipher->nid);
-        if (cipher == NULL)
-            return -1;
-    }
-
-    if (cipher->get_asn1_parameters != NULL)
-        ret = cipher->get_asn1_parameters(c, type);
-    else if (cipher->flags & EVP_CIPH_FLAG_DEFAULT_ASN1) {
-        switch (EVP_CIPHER_mode(cipher)) {
-
-        case EVP_CIPH_WRAP_MODE:
-            ret = 1;
-            break;
-
-        case EVP_CIPH_GCM_MODE:
-            ret = evp_cipher_get_asn1_aead_params(c, type);
-            break;
-
-        case EVP_CIPH_CCM_MODE:
-        case EVP_CIPH_XTS_MODE:
-        case EVP_CIPH_OCB_MODE:
-            ret = -2;
-            break;
-
-        default:
-            ret = EVP_CIPHER_get_asn1_iv(c, type);
-            break;
-        }
-    } else
-        ret = -1;
-    if (ret == -2)
-        EVPerr(EVP_F_EVP_CIPHER_ASN1_TO_PARAM, EVP_R_UNSUPPORTED_CIPHER);
-    else if (ret <= 0)
-        EVPerr(EVP_F_EVP_CIPHER_ASN1_TO_PARAM, EVP_R_CIPHER_PARAMETER_ERROR);
-    if (ret < -1)
-        ret = -1;
-    return ret;
+    return evp_cipher_asn1_to_param_ex(c, type, NULL);
 }
 
 int EVP_CIPHER_get_asn1_iv(EVP_CIPHER_CTX *ctx, ASN1_TYPE *type)
@@ -156,13 +64,118 @@ int EVP_CIPHER_set_asn1_iv(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
     return i;
 }
 
-int evp_cipher_get_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
+int evp_cipher_param_to_asn1_ex(EVP_CIPHER_CTX *c, ASN1_TYPE *type,
+                                evp_cipher_aead_asn1_params *params)
+{
+    int ret;
+    const EVP_CIPHER *cipher = c->cipher;
+
+    if (cipher->prov != NULL) {
+        /*
+         * The cipher has come from a provider and won't have the default flags.
+         * Find the implicit form so we can check the flags.
+         * TODO(3.0): This won't work for 3rd party ciphers we know nothing about
+         * We'll need to think of something else for those.
+         */
+        cipher = EVP_get_cipherbynid(cipher->nid);
+        if (cipher == NULL) {
+            EVPerr(EVP_F_EVP_CIPHER_PARAM_TO_ASN1, ASN1_R_UNSUPPORTED_CIPHER);
+            return -1;
+        }
+    }
+
+    if (cipher->set_asn1_parameters != NULL)
+        ret = cipher->set_asn1_parameters(c, type);
+    else if (cipher->flags & EVP_CIPH_FLAG_DEFAULT_ASN1) {
+        switch (EVP_CIPHER_mode(cipher)) {
+        case EVP_CIPH_WRAP_MODE:
+            if (EVP_CIPHER_nid(cipher) == NID_id_smime_alg_CMS3DESwrap)
+                ASN1_TYPE_set(type, V_ASN1_NULL, NULL);
+            ret = 1;
+            break;
+
+        case EVP_CIPH_GCM_MODE:
+            ret = evp_cipher_set_asn1_aead_params(c, type, params);
+            break;
+
+        case EVP_CIPH_CCM_MODE:
+        case EVP_CIPH_XTS_MODE:
+        case EVP_CIPH_OCB_MODE:
+            ret = -2;
+            break;
+
+        default:
+            ret = EVP_CIPHER_set_asn1_iv(c, type);
+        }
+    } else
+        ret = -1;
+    if (ret == -2)
+        EVPerr(EVP_F_EVP_CIPHER_PARAM_TO_ASN1, ASN1_R_UNSUPPORTED_CIPHER);
+    else if (ret <= 0)
+        EVPerr(EVP_F_EVP_CIPHER_PARAM_TO_ASN1, EVP_R_CIPHER_PARAMETER_ERROR);
+    if (ret < -1)
+        ret = -1;
+    return ret;
+}
+
+int evp_cipher_asn1_to_param_ex(EVP_CIPHER_CTX *c, ASN1_TYPE *type,
+                                evp_cipher_aead_asn1_params *params)
+{
+    int ret;
+    const EVP_CIPHER *cipher = c->cipher;
+
+    if (cipher->prov != NULL) {
+        /*
+         * The cipher has come from a provider and won't have the default flags.
+         * Find the implicit form so we can check the flags.
+         */
+        cipher = EVP_get_cipherbynid(cipher->nid);
+        if (cipher == NULL)
+            return -1;
+    }
+
+    if (cipher->get_asn1_parameters != NULL)
+        ret = cipher->get_asn1_parameters(c, type);
+    else if (cipher->flags & EVP_CIPH_FLAG_DEFAULT_ASN1) {
+        switch (EVP_CIPHER_mode(cipher)) {
+
+        case EVP_CIPH_WRAP_MODE:
+            ret = 1;
+            break;
+
+        case EVP_CIPH_GCM_MODE:
+            ret = evp_cipher_get_asn1_aead_params(c, type, params);
+            break;
+
+        case EVP_CIPH_CCM_MODE:
+        case EVP_CIPH_XTS_MODE:
+        case EVP_CIPH_OCB_MODE:
+            ret = -2;
+            break;
+
+        default:
+            ret = EVP_CIPHER_get_asn1_iv(c, type);
+            break;
+        }
+    } else
+        ret = -1;
+    if (ret == -2)
+        EVPerr(EVP_F_EVP_CIPHER_ASN1_TO_PARAM, EVP_R_UNSUPPORTED_CIPHER);
+    else if (ret <= 0)
+        EVPerr(EVP_F_EVP_CIPHER_ASN1_TO_PARAM, EVP_R_CIPHER_PARAMETER_ERROR);
+    if (ret < -1)
+        ret = -1;
+    return ret;
+}
+
+int evp_cipher_get_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type,
+                                    evp_cipher_aead_asn1_params *params)
 {
     int i = 0;
     long tl;
     unsigned char iv[EVP_MAX_IV_LENGTH];
 
-    if (type == NULL)
+    if (type == NULL || params == NULL)
         return i;
 
     i = asn1_type_get_octetstring_int(type, &tl, NULL, EVP_MAX_IV_LENGTH);
@@ -170,34 +183,21 @@ int evp_cipher_get_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
         return -1;
     asn1_type_get_octetstring_int(type, &tl, iv, i);
 
-    if (EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_SET_IVLEN, i, NULL) <= 0
-            || EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_SET_IV, i, iv) <= 0)
-        return -1;
+    memcpy(params->iv, iv, i);
+    params->iv_len = i;
 
     return i;
 }
 
 
-int evp_cipher_set_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type)
+int evp_cipher_set_asn1_aead_params(EVP_CIPHER_CTX *c, ASN1_TYPE *type,
+                                    evp_cipher_aead_asn1_params *params)
 {
-    int ivl, tl;
-    unsigned char iv[EVP_MAX_IV_LENGTH];
-
-    if (type == NULL)
+    if (type == NULL || params == NULL)
         return 0;
 
-    tl = EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_AEAD_GET_TAGLEN, 0, NULL);
-    if (tl <= 0)
-        return -1;
-
-    ivl = EVP_CIPHER_CTX_iv_length(c);
-    if (ivl <= 0)
-        return -1;
-
-    if (EVP_CIPHER_CTX_ctrl(c, EVP_CTRL_GET_IV, ivl, iv) > 0)
-        return asn1_type_set_octetstring_int(type, tl, iv, ivl);
-
-    return 0;
+    return asn1_type_set_octetstring_int(type, params->tag_len, params->iv,
+                                         params->iv_len);
 }
 #endif /* !defined(FIPS_MODE) */
 
