@@ -718,10 +718,10 @@ static int cipher_test_enc(EVP_TEST *t, int enc,
     if (expected->aead) {
         unsigned char *tag;
         /*
-         * If encrypting or OCB just set tag length initially, otherwise
+         * If encrypting or tag late just set tag length initially, otherwise
          * set tag length and value.
          */
-        if (enc || expected->aead == EVP_CIPH_OCB_MODE || expected->tag_late) {
+        if (enc || expected->tag_late) {
             t->err = "TAG_LENGTH_SET_ERROR";
             tag = NULL;
         } else {
@@ -822,7 +822,7 @@ static int cipher_test_enc(EVP_TEST *t, int enc,
         }
     }
 
-    if (!enc && (expected->aead == EVP_CIPH_OCB_MODE || expected->tag_late)) {
+    if (!enc && expected->tag_late) {
         if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG,
                                  expected->tag_len, expected->tag)) {
             t->err = "TAG_SET_ERROR";
