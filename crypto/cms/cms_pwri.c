@@ -16,6 +16,7 @@
 #include <openssl/rand.h>
 #include <openssl/aes.h>
 #include "internal/sizes.h"
+#include "crypto/evp.h"
 #include "crypto/asn1.h"
 #include "cms_local.h"
 
@@ -49,6 +50,7 @@ CMS_RecipientInfo *CMS_add0_recipient_password(CMS_ContentInfo *cms,
     CMS_PasswordRecipientInfo *pwri;
     EVP_CIPHER_CTX *ctx = NULL;
     X509_ALGOR *encalg = NULL;
+    evp_cipher_aead_asn1_params aparams;
     unsigned char iv[EVP_MAX_IV_LENGTH];
     int ivlen;
     const CMS_CTX *cms_ctx = ossl_cms_get0_cmsctx(cms);
@@ -114,7 +116,14 @@ CMS_RecipientInfo *CMS_add0_recipient_password(CMS_ContentInfo *cms,
             ERR_raise(ERR_LIB_CMS, ERR_R_ASN1_LIB);
             goto err;
         }
-        if (EVP_CIPHER_param_to_asn1(ctx, encalg->parameter) <= 0) {
+        if ((EVP_CIPHER_get_flags(kekciph) & EVP_CIPH_FLAG_AEAD_CIPHER)) {
+            memcpy(aparams.iv, iv, ivlen);
+            aparams.iv_len = ivlen;
+            aparams.tag_len = EVP_CIPHER_CTX_get_tag_length(ctx);
+            if (aparams.tag_len <= 0)
+                goto err;
+        }
+        if (evp_cipher_param_to_asn1_ex(ctx, encalg->parameter, &aparams) <= 0) {
             ERR_raise(ERR_LIB_CMS, CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR);
             goto err;
         }
@@ -309,13 +318,14 @@ int ossl_cms_RecipientInfo_pwri_crypt(const CMS_ContentInfo *cms,
 {
     CMS_EncryptedContentInfo *ec;
     CMS_PasswordRecipientInfo *pwri;
-    int r = 0;
+    int r = 0, i;
     X509_ALGOR *algtmp, *kekalg = NULL;
     EVP_CIPHER_CTX *kekctx = NULL;
     char name[OSSL_MAX_NAME_SIZE];
     EVP_CIPHER *kekcipher;
     unsigned char *key = NULL;
     size_t keylen;
+    evp_cipher_aead_asn1_params aparams;
     const CMS_CTX *cms_ctx = ossl_cms_get0_cmsctx(cms);
 
     ec = ossl_cms_get0_env_enc_content(cms);
@@ -359,7 +369,7 @@ int ossl_cms_RecipientInfo_pwri_crypt(const CMS_ContentInfo *cms,
     if (!EVP_CipherInit_ex(kekctx, kekcipher, NULL, NULL, NULL, en_de))
         goto err;
     EVP_CIPHER_CTX_set_padding(kekctx, 0);
-    if (EVP_CIPHER_asn1_to_param(kekctx, kekalg->parameter) <= 0) {
+    if (evp_cipher_asn1_to_param_ex(kekctx, kekalg->parameter, &aparams) <= 0) {
         ERR_raise(ERR_LIB_CMS, CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR);
         goto err;
     }
@@ -373,6 +383,22 @@ int ossl_cms_RecipientInfo_pwri_crypt(const CMS_ContentInfo *cms,
                            algtmp->parameter, kekctx, en_de) < 0) {
         ERR_raise(ERR_LIB_CMS, ERR_R_EVP_LIB);
         goto err;
+    }
+
+    if ((EVP_CIPHER_get_flags(kekcipher) & EVP_CIPH_FLAG_AEAD_CIPHER)) {
+        // TODO: check what other implementation do to store the tag
+        if (en_de) {
+            // TODO: prepend tag to key
+        } else {
+            // TODO: get tag from the key data (pwri->encryptedKey->data) that will be len from aparams
+            if (!EVP_CIPHER_CTX_ctrl(kekctx, EVP_CTRL_AEAD_SET_TAG, 0, "")) {
+                goto err;
+            }
+            /* Add empty AAD */
+            if (!EVP_CipherUpdate(kekctx, NULL, &i, (const unsigned char *) "", 0)) {
+                goto err;
+            }
+        }
     }
 
     /* Finally wrap/unwrap the key */
