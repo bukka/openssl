@@ -1,9 +1,30 @@
 # Make sure all tests have WRAP otherwise -lcmocka is not added.
 
+PROGRAMS{noinst}=ssl/statem/test_statem_clnt_ctr_ch
+SOURCE[ssl/statem/test_statem_clnt_ctr_ch]=ssl/statem/test_statem_clnt_ctr_ch.c
+INCLUDE[ssl/statem/test_statem_clnt_ctr_ch]=../../include ../../include/internal \
+                                            ../../ssl ../../ssl/statem
+DEPEND[ssl/statem/test_statem_clnt_ctr_ch]=../../libssl.a ../../libcrypto.a
+WRAP[ssl/statem/test_statem_clnt_ctr_ch]=ossl_statem_fatal \
+                                          ssl_set_client_hello_version \
+                                          ssl_version_supported \
+                                          SSL_SESSION_is_resumable \
+                                          ssl_get_new_session \
+                                          ssl_fill_hello_random \
+                                          RAND_bytes_ex \
+                                          ssl_cipher_list_to_bytes \
+                                          tls_construct_extensions \
+                                          ssl_allow_compression \
+                                          WPACKET_put_bytes__ \
+                                          WPACKET_memcpy \
+                                          WPACKET_start_sub_packet_len__ \
+                                          WPACKET_close \
+                                          WPACKET_sub_memcpy__
+
 PROGRAMS{noinst}=ssl/statem/test_statem_clnt_tran
 SOURCE[ssl/statem/test_statem_clnt_tran]=ssl/statem/test_statem_clnt_tran.c
 INCLUDE[ssl/statem/test_statem_clnt_tran]=../../include ../../include/internal \
-                                     ../../ssl ../../ssl/statem
+                                          ../../ssl ../../ssl/statem
 DEPEND[ssl/statem/test_statem_clnt_tran]=../../libssl.a ../../libcrypto.a
 WRAP[ssl/statem/test_statem_clnt_tran]=ossl_statem_fatal \
                                         ssl3_renegotiate_check \
