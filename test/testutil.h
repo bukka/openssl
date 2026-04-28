@@ -20,6 +20,7 @@
 #include <openssl/bn.h>
 #include <openssl/x509.h>
 #include "opt.h"
+#include "mfail/mfail.h"
 
 /*-
  * Simple unit tests should implement setup_tests().
@@ -243,16 +244,6 @@ void add_test(const char *test_case_name, int (*test_fn)(void));
 void add_all_tests(const char *test_case_name, int (*test_fn)(int idx), int num,
     int subtest);
 void add_mfail_test(const char *test_case_name, int (*test_fn)(void), int slow);
-
-/*
- * Start the memory allocation failure counter.
- */
-void mfail_start(void);
-
-/*
- * Stop the memory allocation failure counter.
- */
-void mfail_end(void);
 
 #define MFAIL_start mfail_start
 #define MFAIL_end mfail_end
