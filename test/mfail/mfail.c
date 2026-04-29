@@ -9,9 +9,17 @@
 
 #include "mfail.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/crypto.h>
+
+#if defined(__GNUC__) && !defined(_WIN32)
+# define MFAIL_HAVE_BACKTRACE
+# include <execinfo.h>
+#endif
+
+#define MFAIL_BT_MAX 64
 
 static struct {
     int installed;
@@ -20,6 +28,7 @@ static struct {
     int single_point;
     int start_point;
     int env_count;
+    int print_bt;
     int mode;
     int phase;
     int seq;
@@ -47,6 +56,29 @@ static int env_int(const char *name, int dflt)
     return (value != NULL && *value != '\0') ? atoi(value) : dflt;
 }
 
+static void print_backtrace(int point)
+{
+#ifdef MFAIL_HAVE_BACKTRACE
+    void *buf[MFAIL_BT_MAX];
+    char **syms;
+    int n, i;
+
+    n = backtrace(buf, MFAIL_BT_MAX);
+    syms = backtrace_symbols(buf, n);
+    if (syms == NULL)
+        return;
+
+    fprintf(stderr, "# MFAIL_BACKTRACE point=%d:\n", point);
+    /* Skip frame 0 (this function) */
+    for (i = 1; i < n; i++)
+        fprintf(stderr, "#   %s\n", syms[i]);
+
+    free(syms);
+#else
+    (void)point;
+#endif
+}
+
 static int should_fail(void)
 {
     int idx;
@@ -60,6 +92,8 @@ static int should_fail(void)
         return 0;
     if (idx == mf.fail_after) {
         mf.triggered = 1;
+        if (mf.print_bt)
+            print_backtrace(idx);
         return 1;
     }
     return 0;
@@ -101,6 +135,7 @@ int mfail_install(void)
 
     mf.skip_all = env_is_true("OPENSSL_TEST_MFAIL_SKIP_ALL");
     mf.skip_slow = env_is_true("OPENSSL_TEST_MFAIL_SKIP_SLOW");
+    mf.print_bt = env_is_true("OPENSSL_TEST_MFAIL_BACKTRACE");
     mf.single_point = env_int("OPENSSL_TEST_MFAIL_POINT", -1);
     mf.start_point = env_int("OPENSSL_TEST_MFAIL_START", 0);
     mf.env_count = env_int("OPENSSL_TEST_MFAIL_COUNT", 0);
