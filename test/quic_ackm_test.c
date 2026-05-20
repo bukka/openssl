@@ -1116,11 +1116,75 @@ static int test_rx_ack(int idx)
     return test_rx_ack_actual(tidx, idx);
 }
 
+static int test_on_tx_packet_mfail(void)
+{
+    int ret = 0, rc;
+    struct helper h;
+    OSSL_ACKM_TX_PKT *tx;
+
+    if (!TEST_int_eq(helper_init(&h, 1), 1))
+        goto err;
+
+    if (!TEST_ptr(h.pkts[0].pkt = tx = OPENSSL_zalloc(sizeof(*tx))))
+        goto err;
+
+    tx->pkt_num = 0;
+    tx->pkt_space = QUIC_PN_SPACE_INITIAL;
+    tx->num_bytes = 123;
+    tx->largest_acked = QUIC_PN_INVALID;
+    tx->is_inflight = 1;
+    tx->is_ack_eliciting = 1;
+    tx->time = fake_time;
+    tx->on_lost = on_lost;
+    tx->on_acked = on_acked;
+    tx->on_discarded = on_discarded;
+    tx->cb_arg = &h.pkts[0];
+
+    MFAIL_start();
+    rc = ossl_ackm_on_tx_packet(h.ackm, tx);
+    MFAIL_end();
+
+    /*
+     * If on_tx_packet reports success, the packet is fully recorded and ACKing
+     * it must drive the on_acked callback. If it reports failure, the packet
+     * was never registered, so no callback should fire.
+     */
+    if (rc == 1) {
+        OSSL_QUIC_ACK_RANGE r = { 0, 0 };
+        OSSL_QUIC_FRAME_ACK ack = { 0 };
+
+        ack.ack_ranges = &r;
+        ack.num_ack_ranges = 1;
+
+        if (!TEST_int_eq(ossl_ackm_on_rx_ack_frame(h.ackm, &ack,
+                             QUIC_PN_SPACE_INITIAL, fake_time),
+                1))
+            goto err;
+
+        if (!TEST_int_eq(h.pkts[0].acked, 1)
+            || !TEST_int_eq(h.pkts[0].lost, 0)
+            || !TEST_int_eq(h.pkts[0].discarded, 0))
+            goto err;
+        
+        ret = 1;
+    } else {
+        /* Failure path: no callback should have fired. */
+        if (!TEST_int_eq(h.pkts[0].acked, 0)
+            || !TEST_int_eq(h.pkts[0].lost, 0)
+            || !TEST_int_eq(h.pkts[0].discarded, 0))
+            goto err;
+    }
+err:
+    helper_destroy(&h);
+    return ret;
+}
+
 int setup_tests(void)
 {
     ADD_ALL_TESTS(test_tx_ack_case,
         OSSL_NELEM(tx_ack_cases) * MODE_NUM * QUIC_PN_SPACE_NUM);
     ADD_ALL_TESTS(test_tx_ack_time_script, OSSL_NELEM(tx_ack_time_scripts));
     ADD_ALL_TESTS(test_rx_ack, OSSL_NELEM(rx_test_scripts) * QUIC_PN_SPACE_NUM);
+    ADD_MFAIL_TEST(test_on_tx_packet_mfail);
     return 1;
 }
