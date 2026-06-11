@@ -18,14 +18,23 @@ use OpenSSL::Test::Utils;
 setup("test_unit");
 
 my $unit_dir = bldtop_dir('test', 'unit');
+my $exeext = ($^O eq 'MSWin32') ? '.exe' : '';
 
 my @tests = ();
 if (-d $unit_dir) {
     find({
         wanted => sub {
-            return unless -f $_ && -x $_;
-            return unless $_ =~ m|/test_[^/]*$|;
-            return if $_ =~ m|\.\w+$|;
+            return unless -f $_;
+            my $base = $_;
+            if ($exeext ne '') {
+                # require + strip .exe
+                return unless $base =~ s/\Q$exeext\E$//;
+            } else {
+                return unless -x $_;
+            }
+            return unless $base =~ m|/test_[^/]*$|;
+            # reject .pdb/.obj/etc
+            return if $base =~ m|\.\w+$|;
             push @tests, $_;
         },
         no_chdir => 1,
