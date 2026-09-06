@@ -1949,7 +1949,7 @@ static int test_final_size_violation_fin_first(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     unsigned int i;
     unsigned int send_order[OSSL_NELEM(tsc_buf)];
