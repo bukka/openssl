@@ -1124,10 +1124,8 @@ int ossl_sframe_set_peek(SFRAME_SET *fs, void **iterator,
     assert(sc->sc_data != NULL);
     assert(sc->sc_range.start <= start);
     *data = sc->sc_data + (start - sc->sc_range.start);
-    if (sc == ossl_list_sc_tail(&sr->sr_chunks) && OSSL_RBT_NEXT(srange, sr) == NULL)
-        *fin = fs->fin;
-    else
-        *fin = 0;
+    *fin = fs->fin && sc->sc_range.end == fs->fin_off;
+
     if (sr->sr_it_sc != NULL)
         DEBUG_PRINT(stderr, "%s %p [ %llu, %llu ] %p [ %llu, %llu ]\n",
             OPENSSL_FUNC, (void *)sr->sr_it_sc,
