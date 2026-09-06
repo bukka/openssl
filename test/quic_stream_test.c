@@ -2058,10 +2058,17 @@ static int test_final_size_violation_fin_first(void)
 
     ok = 1;
 err:
+    /*
+     * the data from rstream has not been consumed,
+     * references to packets are still retained there.
+     * therefore we need to free rstream before freeing
+     * pkckets.
+     */
+    ossl_quic_rstream_free(rstream);
+
     for (i = 0; i < OSSL_NELEM(tsc_buf); i++)
         pkt_test_free(pkt[i]);
 
-    ossl_quic_rstream_free(rstream);
     ossl_quic_rstream_qparm_destroy(rsqp);
     ossl_quic_channel_free(ch);
 
@@ -2170,10 +2177,17 @@ static int test_final_size_violation_data_first(void)
 
     ok = 1;
 err:
+    /*
+     * the data from rstream has not been consumed,
+     * references to packets are still retained there.
+     * therefore we need to free rstream before freeing
+     * pkckets.
+     */
+    ossl_quic_rstream_free(rstream);
+
     for (i = 0; i < OSSL_NELEM(tsc_buf); i++)
         pkt_test_free(pkt[i]);
 
-    ossl_quic_rstream_free(rstream);
     ossl_quic_rstream_qparm_destroy(rsqp);
     ossl_quic_channel_free(ch);
 
