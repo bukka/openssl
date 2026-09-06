@@ -12,6 +12,7 @@
 #include "internal/quic_stream.h"
 #include "internal/quic_strm_reas.h"
 #include "internal/list.h"
+#include "internal/quic_channel.h"
 
 #if !defined(NDEBUG) && defined(WITH_STRM_REAS_DEBUG)
 #include <stdio.h>
@@ -61,6 +62,7 @@ struct stream_chunk_t {
 struct quic_rstream_qparm_st {
     size_t rsqp_pkt_overhead_treshold;
     size_t rsqp_pkt_overhead_sz;
+    QUIC_CHANNEL *rsqp_ch;
 };
 
 #define sc_data sc_data_u.u_data
@@ -790,6 +792,7 @@ static struct stream_range_t *append_range(SFRAME_SET *fs,
 
 /*
  * receives a chunk of data from stream frame.
+ * note there is a tri-state return value:
  */
 int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
     const unsigned char *data, int fin)
@@ -800,16 +803,31 @@ int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
     struct stream_chunk_t *sc = NULL;
     struct stream_range_t key_sr = { 0 };
 
+    assert(r->start <= r->end);
+
     /*
-     * receive the FIN frame if FIN frame. If FIN was not seen yet,
-     * then record FIN's offset (r->end). If FIN was received then
-     * verify FIN's offset match, error out on mismatch.
+     * receive the FIN frame. If FIN was not seen yet, then record
+     * FIN's offset (r->end). If FIN was received then verify FIN's
+     * offset match, error out on mismatch.
      */
     if (fin != 0) {
         if (fs->fin == 0) {
+            sr = OSSL_RBT_MIN(srange, &fs->ranges);
+            if (sr != NULL
+                && (sr->sr_range.start > r->end || sr->sr_range.end > r->end)) {
+                ossl_quic_channel_raise_protocol_error(fs->rsqp->rsqp_ch,
+                    OSSL_QUIC_ERR_PROTOCOL_VIOLATION,
+                    OSSL_QUIC_FRAME_TYPE_STREAM_FIN,
+                    "stream final size error");
+                return 0;
+            }
             fs->fin = 1;
             fs->fin_off = r->end;
         } else if (fs->fin_off != r->end) {
+            ossl_quic_channel_raise_protocol_error(fs->rsqp->rsqp_ch,
+                OSSL_QUIC_ERR_PROTOCOL_VIOLATION,
+                OSSL_QUIC_FRAME_TYPE_STREAM_FIN,
+                "stream final size error");
             return 0;
         }
     }
@@ -818,10 +836,14 @@ int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
      * discard any data past FIN offset (of FIN offset is set).
      */
     if (fs->fin != 0) {
-        if (fs->fin_off < r->end)
-            r->end = fs->fin_off; /* truncate bytes beyond FIN */
-        if (fs->fin_off < r->start)
+        if (fs->fin_off < r->end || fs->fin_off < r->start) {
+            ossl_quic_channel_raise_protocol_error(fs->rsqp->rsqp_ch,
+                OSSL_QUIC_ERR_PROTOCOL_VIOLATION,
+                (fin == 0) ? OSSL_QUIC_FRAME_TYPE_STREAM
+                           : OSSL_QUIC_FRAME_TYPE_STREAM_FIN,
+                "stream final size error");
             return 0;
+        }
     }
 
     if (r->end <= fs->offset) {
@@ -1212,7 +1234,7 @@ int ossl_sframe_set_move_offset(SFRAME_SET *fs, uint64_t new_offset)
     return 1;
 }
 
-QUIC_RSTREAM_QPARM *ossl_quic_rstream_qparm_new(void)
+QUIC_RSTREAM_QPARM *ossl_quic_rstream_qparm_new(QUIC_CHANNEL *ch)
 {
     QUIC_RSTREAM_QPARM *rsqp;
 
@@ -1220,6 +1242,7 @@ QUIC_RSTREAM_QPARM *ossl_quic_rstream_qparm_new(void)
     if (rsqp != NULL) {
         rsqp->rsqp_pkt_overhead_treshold = PKT_BUFFER_OVERHEAD_TRESHOLD;
         rsqp->rsqp_pkt_overhead_sz = 0;
+        rsqp->rsqp_ch = ch;
     }
 
     return rsqp;

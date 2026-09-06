@@ -308,7 +308,7 @@ static int ch_init(QUIC_CHANNEL *ch)
             goto err;
     }
 
-    ch->rsqp = ossl_quic_rstream_qparm_new();
+    ch->rsqp = ossl_quic_rstream_qparm_new(ch);
     if (ch->rsqp == NULL)
         goto err;
 
