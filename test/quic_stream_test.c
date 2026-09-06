@@ -911,7 +911,7 @@ static int test_rstream_chunk_partial_overlap(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     size_t readbytes;
     unsigned int i;
@@ -1125,7 +1125,7 @@ static int test_rstream_chunk_full_overlap(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     size_t readbytes;
     unsigned int i;
@@ -1262,7 +1262,7 @@ static int test_rstream_range_overlap(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     size_t readbytes;
     unsigned int i;
@@ -1461,7 +1461,7 @@ static int test_rstream_prepend_byte_chunks(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     size_t readbytes;
     unsigned int i;
@@ -1615,7 +1615,7 @@ static int test_rstream_append_byte_chunks(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     size_t readbytes;
     unsigned int i;
@@ -1769,7 +1769,7 @@ static int test_rstream_mix_chunks(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     size_t readbytes;
     unsigned int i;
@@ -2076,7 +2076,7 @@ static int test_final_size_violation_data_first(void)
     OSSL_QRX_PKT *pkt[OSSL_NELEM(tsc_buf)] = { 0 };
     QUIC_RSTREAM_QPARM *rsqp = NULL;
     TEST_STREAM_CHUNK_T *tsc;
-    QUIC_RSTREAM *rstream;
+    QUIC_RSTREAM *rstream = NULL;
     QUIC_CHANNEL *ch = NULL;
     unsigned int i;
     int ok = 0;
