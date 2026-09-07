@@ -77,15 +77,6 @@ int ossl_sframe_set_peek(SFRAME_SET *fs, void **iter,
     int *fin);
 
 /*
- * Drop all frames up to the offset limit.
- * Also unlocks the head frame if locked.
- * Returns 1 on success.
- * Returns 0 when trying to drop frames at offsets that were not
- * received yet. (ossl_assert() is used to check, so this is an invalid call.)
- */
-int ossl_sframe_set_drop_frames(SFRAME_SET *fs, uint64_t limit);
-
-/*
  * moves reading offset to new position, discarding all consumed
  * chunks (which end offset is less than offset).
  */
