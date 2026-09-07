@@ -359,7 +359,7 @@ static int try_dstorage(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
      */
     rsize = r->end - r->start;
     if (r->start < sr->sr_range.start && r->end > sr->sr_range.end
-        && rsize > DIRECT_STORAGE_SZ && ossl_list_sc_num(&sr->sr_chunks) > 1)
+        && ossl_list_sc_num(&sr->sr_chunks) > 1)
         return 0;
 
     head_sc = ossl_list_sc_head(&sr->sr_chunks);
