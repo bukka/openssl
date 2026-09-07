@@ -558,6 +558,7 @@ static void prepend_chunk(SFRAME_SET *fs, struct stream_range_t *sr,
     struct stream_chunk_t *sc)
 {
     size_t unused_sz;
+    uint64_t offset;
 
     assert(sc->sc_range.start < sc->sc_range.end);
     assert(sr->sr_range.start > sc->sc_range.start);
@@ -567,8 +568,11 @@ static void prepend_chunk(SFRAME_SET *fs, struct stream_range_t *sr,
     assert(sc->sc_range.end >= sr->sr_range.start);
 
     unused_sz = UINT64_TO_SIZE_T(sc->sc_range.end - sr->sr_range.start);
-    if (fs->cleanse && unused_sz > 0)
-        OPENSSL_cleanse(sc->sc_data_w, unused_sz);
+    if (fs->cleanse && unused_sz > 0) {
+        offset = sr->sr_range.start - sc->sc_range.start;
+        assert(unused_sz + offset == sc->sc_range.end - sc->sc_range.start);
+        OPENSSL_cleanse(&sc->sc_data_w[offset], unused_sz);
+    }
 
     sc->sc_range.end = sr->sr_range.start;
     DEBUG_PRINT(stderr, "[ %llu, %llu ] -> ",
