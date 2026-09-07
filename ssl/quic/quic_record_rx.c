@@ -1443,6 +1443,7 @@ int ossl_qrx_read_pkt(OSSL_QRX *qrx, OSSL_QRX_PKT **ppkt)
         = BIO_ADDR_family(&rxe->local) != AF_UNSPEC ? &rxe->local : NULL;
     rxe->pkt.key_epoch = rxe->key_epoch;
     rxe->pkt.datagram_id = rxe->datagram_id;
+    rxe->pkt.reas_chunks = 0;
     rxe->pkt.qrx = qrx;
     *ppkt = &rxe->pkt;
 

@@ -253,6 +253,12 @@ struct ossl_qrx_pkt_st {
      * It is for diagnostic use only.
      */
     uint64_t datagram_id;
+
+    /*
+     * Number of stream reassembler chunks currently referencing this
+     * packet, used to account the packet buffer overhead once per packet.
+     */
+    size_t reas_chunks;
 };
 
 /*

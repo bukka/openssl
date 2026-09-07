@@ -175,10 +175,12 @@ static int srange_cmp(const struct stream_range_t *a_sr,
 }
 
 static int keep_schunk_data_on_packet(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
-    UINT_RANGE *r)
+    size_t overhead)
 {
     if (fs->rsqp != NULL
-        && fs->rsqp->rsqp_pkt_overhead_sz >= fs->rsqp->rsqp_pkt_overhead_treshold)
+        && fs->rsqp->rsqp_pkt_overhead_sz
+           + (pkt->reas_chunks == 0 ? overhead : 0)
+           >= fs->rsqp->rsqp_pkt_overhead_treshold)
         return 0;
 
     return 1;
@@ -201,12 +203,15 @@ static struct stream_chunk_t *new_schunk(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
     rsize = r->end - r->start;
     assert(rsize <= pkt->datagram_len);
     overhead = UINT64_TO_SIZE_T(pkt->datagram_len - rsize);
-    rsqp_add_overhead(fs->rsqp, overhead);
 
-    if (keep_schunk_data_on_packet(fs, pkt, r) == 1) {
+    if (keep_schunk_data_on_packet(fs, pkt, overhead) == 1) {
         sc->sc_st = ST_TYPE_PKT;
         sc->sc_pkt = pkt;
         ossl_qrx_pkt_up_ref(pkt);
+        if (pkt->reas_chunks++ == 0)
+            rsqp_add_overhead(fs->rsqp, overhead);
+        else
+            rsqp_sub_overhead(fs->rsqp, UINT64_TO_SIZE_T(rsize));
         sc->sc_data = data;
         sc->sc_range = *r;
         if (fs->rsqp != NULL)
@@ -216,11 +221,6 @@ static struct stream_chunk_t *new_schunk(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
                 fs->rsqp->rsqp_pkt_overhead_sz - SCHUNK_OVERHEAD(pkt, sc),
                 fs->rsqp->rsqp_pkt_overhead_sz);
     } else {
-        /*
-         * Only data which stay on packet must be accounted as overhead.
-         */
-        rsqp_sub_overhead(fs->rsqp, overhead);
-
         if (rsize <= DIRECT_STORAGE_SZ) {
             DEBUG_PRINT(stderr, "%s ST_TYPE_DIRECT sc: %p %llu\n", OPENSSL_FUNC,
                 (void *)sc, rsize);
@@ -257,16 +257,12 @@ static void destroy_schunk(SFRAME_SET *fs, struct stream_chunk_t *sc)
 
     switch (sc->sc_st) {
     case ST_TYPE_PKT:
-        assert(fs->rsqp == NULL
-            || fs->rsqp->rsqp_pkt_overhead_sz >= SCHUNK_OVERHEAD(sc->sc_pkt, sc));
-        if (fs->rsqp != NULL)
-            DEBUG_PRINT(stderr,
-                "%s sc: %p sc overhead: %d pkt_buf_overhead_sz: %zu -> %zu\n",
-                OPENSSL_FUNC, (void *)sc, SCHUNK_OVERHEAD(sc->sc_pkt, sc),
-                fs->rsqp->rsqp_pkt_overhead_sz,
-                fs->rsqp->rsqp_pkt_overhead_sz - SCHUNK_OVERHEAD(sc->sc_pkt, sc));
-        rsqp_sub_overhead(fs->rsqp,
-            UINT64_TO_SIZE_T(SCHUNK_OVERHEAD(sc->sc_pkt, sc)));
+        assert(sc->sc_pkt->reas_chunks > 0);
+        if (--sc->sc_pkt->reas_chunks == 0)
+            rsqp_sub_overhead(fs->rsqp,
+                UINT64_TO_SIZE_T(SCHUNK_OVERHEAD(sc->sc_pkt, sc)));
+        else
+            rsqp_add_overhead(fs->rsqp, UINT64_TO_SIZE_T(SCHUNK_SIZE(sc)));
         ossl_qrx_pkt_release(sc->sc_pkt);
         break;
     case ST_TYPE_HEAP:
