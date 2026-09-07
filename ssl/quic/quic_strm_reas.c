@@ -812,11 +812,11 @@ int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
      */
     if (fin != 0) {
         if (fs->fin == 0) {
-            sr = OSSL_RBT_MIN(srange, &fs->ranges);
-            if (sr != NULL
-                && (sr->sr_range.start > r->end || sr->sr_range.end > r->end)) {
+            sr = OSSL_RBT_MAX(srange, &fs->ranges);
+            if (r->end < fs->offset
+                || (sr != NULL && sr->sr_range.end > r->end)) {
                 ossl_quic_channel_raise_protocol_error(fs->rsqp->rsqp_ch,
-                    OSSL_QUIC_ERR_PROTOCOL_VIOLATION,
+                    OSSL_QUIC_ERR_FINAL_SIZE_ERROR,
                     OSSL_QUIC_FRAME_TYPE_STREAM_FIN,
                     "stream final size error");
                 return 0;
@@ -825,7 +825,7 @@ int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
             fs->fin_off = r->end;
         } else if (fs->fin_off != r->end) {
             ossl_quic_channel_raise_protocol_error(fs->rsqp->rsqp_ch,
-                OSSL_QUIC_ERR_PROTOCOL_VIOLATION,
+                OSSL_QUIC_ERR_FINAL_SIZE_ERROR,
                 OSSL_QUIC_FRAME_TYPE_STREAM_FIN,
                 "stream final size error");
             return 0;
@@ -833,12 +833,12 @@ int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
     }
 
     /*
-     * discard any data past FIN offset (of FIN offset is set).
+     * reject any data past the FIN offset (if FIN offset is set).
      */
     if (fs->fin != 0) {
-        if (fs->fin_off < r->end || fs->fin_off < r->start) {
+        if (fs->fin_off < r->end) {
             ossl_quic_channel_raise_protocol_error(fs->rsqp->rsqp_ch,
-                OSSL_QUIC_ERR_PROTOCOL_VIOLATION,
+                OSSL_QUIC_ERR_FINAL_SIZE_ERROR,
                 (fin == 0) ? OSSL_QUIC_FRAME_TYPE_STREAM
                            : OSSL_QUIC_FRAME_TYPE_STREAM_FIN,
                 "stream final size error");
