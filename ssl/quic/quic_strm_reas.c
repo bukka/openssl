@@ -117,15 +117,16 @@ static void rsqp_sub_overhead(QUIC_RSTREAM_QPARM *rsqp, size_t sc_overhead)
 }
 
 /*
- * the (const ...) must be removed from data when QUIC
- * when cleanse flag is set for stream (and OPENSSL_cleanse())
- * must be used to discard sensitive payload.
- *
- * the proper way to fix it is to change prototypes for
- * ossl_sframe_set_insert() function and adjust its callers.
- * but this is for yet another PR. Until that the deconst()
- * function should be used.
- */
+  * Cleansing (SSL_OP_CLEANSE_PLAINTEXT) must write through the const
+  * data pointers received from ossl_sframe_set_insert(), which may
+  * point into a shared packet buffer. That is safe: each chunk
+  * references the disjoint payload slice of its own frame and a
+  * processed packet is kept alive only by the chunks stored on it,
+  * so nobody else reads the wiped bytes.
+  *
+  * The const should eventually be dropped from the prototypes
+  * instead; until then deconst() is used.
+  */
 static unsigned char *deconst(const unsigned char *data)
 {
     union {
