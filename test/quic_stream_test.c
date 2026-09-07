@@ -1135,6 +1135,102 @@ err:
     return ret;
 }
 
+/*
+ * Frames coalesced into one datagram share a single pinned packet
+ * buffer, so the packet buffer overhead budget must be charged once
+ * per packet, not once per frame. A sender which perfectly fills every
+ * datagram pins no unused buffer space at all, so the stream must stay
+ * in the zero copy packet mode no matter how many such datagrams are
+ * buffered ahead of a lagging reader. Counting the overhead per frame
+ * charges 3 * (1200 - 400) = 2400 for each of these datagrams and
+ * falsely crosses the 64kB budget after 28 of them.
+ */
+static int test_rstream_coalesced_pkt_overhead(void)
+{
+    QUIC_RSTREAM *rstream = NULL;
+    QUIC_CHANNEL *ch = NULL;
+    QUIC_RSTREAM_QPARM *rsqp = NULL;
+    OSSL_QRX_PKT *pkts[41] = { NULL };
+    unsigned char *data = NULL, *buf = NULL;
+    const size_t framesz = 400;
+    const size_t frames_per_pkt = 3;
+    const size_t npkts = OSSL_NELEM(pkts) - 1;
+    const size_t total = (npkts * frames_per_pkt + 1) * framesz;
+    size_t i, j, got = 0, readbytes = 0;
+    int fin = 0, ret = 0;
+
+    if (!TEST_ptr(data = OPENSSL_malloc(total))
+        || !TEST_ptr(buf = OPENSSL_malloc(total))
+        || !TEST_ptr(ch = OPENSSL_zalloc(sizeof(QUIC_CHANNEL)))
+        || !TEST_ptr(rsqp = ossl_quic_rstream_qparm_new(ch))
+        || !TEST_ptr(rstream = ossl_quic_rstream_new(NULL, NULL, rsqp)))
+        goto err;
+
+    for (i = 0; i < total; ++i)
+        data[i] = (unsigned char)(i & 0xff);
+
+    for (i = 0; i < npkts; ++i) {
+        if (!TEST_ptr(pkts[i] = pkt_test_new(frames_per_pkt * framesz)))
+            goto err;
+
+        for (j = 0; j < frames_per_pkt; ++j) {
+            size_t off = (i * frames_per_pkt + j) * framesz;
+
+            if (!TEST_true(ossl_quic_rstream_queue_data(rstream, pkts[i],
+                    off, data + off, framesz, 0)))
+                goto err;
+        }
+
+        /* every frame of a fully packed datagram keeps its packet pinned */
+        if (!TEST_size_t_eq(pkt_test_refcount(pkts[i]),
+                1 + frames_per_pkt)) {
+            TEST_info("%s failing datagram %zu", OPENSSL_FUNC, i);
+            goto err;
+        }
+    }
+
+    /* the next frame must still be stored on its packet as well */
+    if (!TEST_ptr(pkts[npkts] = pkt_test_new(frames_per_pkt * framesz))
+        || !TEST_true(ossl_quic_rstream_queue_data(rstream, pkts[npkts],
+            npkts * frames_per_pkt * framesz,
+            data + npkts * frames_per_pkt * framesz, framesz, 0))
+        || !TEST_size_t_eq(pkt_test_refcount(pkts[npkts]), 2))
+        goto err;
+
+    /* everything reads back intact and the references get released */
+    while (got < total) {
+        if (!TEST_true(ossl_quic_rstream_read(rstream, buf + got,
+                total - got, &readbytes, &fin)))
+            goto err;
+        if (readbytes == 0)
+            break;
+        got += readbytes;
+    }
+
+    if (!TEST_size_t_eq(got, total)
+        || !TEST_mem_eq(buf, got, data, total))
+        goto err;
+
+    for (i = 0; i < OSSL_NELEM(pkts); ++i)
+        if (!TEST_size_t_eq(pkt_test_refcount(pkts[i]), 1))
+            goto err;
+
+    if (!TEST_int_eq(ch->protocol_error, 0))
+        goto err;
+
+    ret = 1;
+
+err:
+    ossl_quic_rstream_free(rstream);
+    ossl_quic_rstream_qparm_destroy(rsqp);
+    for (i = 0; i < OSSL_NELEM(pkts); ++i)
+        pkt_test_free(pkts[i]);
+    OPENSSL_free(data);
+    OPENSSL_free(buf);
+    ossl_quic_channel_free(ch);
+    return ret;
+}
+
 #define FILL_PATTERN "abcdefghijklmnopqrstuvwxyz0123456789" \
                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -2449,6 +2545,7 @@ int setup_tests(void)
     ADD_TEST(test_rstream_dstorage_two_sided_overlap);
     ADD_TEST(test_rstream_zero_length_read);
     ADD_TEST(test_rstream_fin_final_size);
+    ADD_TEST(test_rstream_coalesced_pkt_overhead);
     ADD_TEST(test_rstream_chunk_partial_overlap);
     ADD_TEST(test_rstream_chunk_full_overlap);
     ADD_TEST(test_rstream_range_overlap);
