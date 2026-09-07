@@ -212,7 +212,7 @@ static struct stream_chunk_t *new_schunk(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
         sc->sc_range = *r;
         if (fs->rsqp != NULL)
             DEBUG_PRINT(stderr,
-                "%s sc: %p sc overhead: %d pkt_buf_overhead_sz: %zu -> %zu\n",
+                "%s sc: %p sc overhead: %llu pkt_buf_overhead_sz: %llu -> %zu\n",
                 OPENSSL_FUNC, (void *)sc, SCHUNK_OVERHEAD(pkt, sc),
                 fs->rsqp->rsqp_pkt_overhead_sz - SCHUNK_OVERHEAD(pkt, sc),
                 fs->rsqp->rsqp_pkt_overhead_sz);
@@ -257,7 +257,7 @@ static void destroy_schunk(SFRAME_SET *fs, struct stream_chunk_t *sc)
             || fs->rsqp->rsqp_pkt_overhead_sz >= SCHUNK_OVERHEAD(sc->sc_pkt, sc));
         if (fs->rsqp != NULL)
             DEBUG_PRINT(stderr,
-                "%s sc: %p sc overhead: %d pkt_buf_overhead_sz: %zu -> %zu\n",
+                "%s sc: %p sc overhead: %llu pkt_buf_overhead_sz: %zu -> %llu\n",
                 OPENSSL_FUNC, (void *)sc, SCHUNK_OVERHEAD(sc->sc_pkt, sc),
                 fs->rsqp->rsqp_pkt_overhead_sz,
                 fs->rsqp->rsqp_pkt_overhead_sz - SCHUNK_OVERHEAD(sc->sc_pkt, sc));
