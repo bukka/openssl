@@ -376,8 +376,6 @@ int ossl_quic_rstream_available(QUIC_RSTREAM *qrs, size_t *avail, int *fin);
  * Returns 1 on success (including calls if no record is available, or
  * after end of the stream - in that case *fin will be set to 1 and
  * *rec_len to 0), 0 on error.
- * It is an error to call ossl_quic_rstream_get_record() multiple times
- * without calling ossl_quic_rstream_release_record() in between.
  */
 int ossl_quic_rstream_get_record(QUIC_RSTREAM *qrs,
     const unsigned char **record, size_t *rec_len,
@@ -392,8 +390,6 @@ int ossl_quic_rstream_get_record(QUIC_RSTREAM *qrs,
  * call to ossl_quic_rstream_get_record() is needed to obtain further
  * stream data.
  * Returns 1 on success, 0 on error.
- * It is an error to call ossl_quic_rstream_release_record() multiple
- * times without calling ossl_quic_rstream_get_record() in between.
  */
 int ossl_quic_rstream_release_record(QUIC_RSTREAM *qrs, size_t read_len);
 
