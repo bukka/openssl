@@ -1169,14 +1169,15 @@ int ossl_sframe_set_move_offset(SFRAME_SET *fs, uint64_t new_offset)
     struct stream_chunk_t *sc, *save_sc;
     size_t unused_sz;
 
-    if (sr == NULL)
-        return 0;
+    if (new_offset == fs->offset)
+        return 1;
 
     /*
-     * offset can move within continuous range only. it can not
-     * move backward, it can not move past the first gap (the first range)
+     * offset can move forward within the continuous head range only.
+     * it can not move backward, into a gap or past the head range end.
      */
-    if (new_offset <= fs->offset || (sr == NULL || new_offset > sr->sr_range.end))
+    if (sr == NULL || new_offset < fs->offset
+        || new_offset < sr->sr_range.start || new_offset > sr->sr_range.end)
         return 0;
 
     fs->offset = new_offset;
