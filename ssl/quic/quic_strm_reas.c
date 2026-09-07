@@ -176,10 +176,10 @@ static int srange_cmp(const struct stream_range_t *a_sr,
 }
 
 static int keep_schunk_data_on_packet(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
-    UINT_RANGE *r)
+    size_t overhead)
 {
     if (fs->rsqp != NULL
-        && fs->rsqp->rsqp_pkt_overhead_sz >= fs->rsqp->rsqp_pkt_overhead_treshold)
+        && (fs->rsqp->rsqp_pkt_overhead_sz + overhead) >= fs->rsqp->rsqp_pkt_overhead_treshold)
         return 0;
 
     return 1;
@@ -202,12 +202,12 @@ static struct stream_chunk_t *new_schunk(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
     rsize = r->end - r->start;
     assert(rsize <= pkt->datagram_len);
     overhead = UINT64_TO_SIZE_T(pkt->datagram_len - rsize);
-    rsqp_add_overhead(fs->rsqp, overhead);
 
-    if (keep_schunk_data_on_packet(fs, pkt, r) == 1) {
+    if (keep_schunk_data_on_packet(fs, pkt, overhead) == 1) {
         sc->sc_st = ST_TYPE_PKT;
         sc->sc_pkt = pkt;
         ossl_qrx_pkt_up_ref(pkt);
+        rsqp_add_overhead(fs->rsqp, overhead);
         sc->sc_data = data;
         sc->sc_range = *r;
         if (fs->rsqp != NULL)
@@ -217,11 +217,6 @@ static struct stream_chunk_t *new_schunk(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
                 fs->rsqp->rsqp_pkt_overhead_sz - SCHUNK_OVERHEAD(pkt, sc),
                 fs->rsqp->rsqp_pkt_overhead_sz);
     } else {
-        /*
-         * Only data which stay on packet must be accounted as overhead.
-         */
-        rsqp_sub_overhead(fs->rsqp, overhead);
-
         if (rsize <= DIRECT_STORAGE_SZ) {
             DEBUG_PRINT(stderr, "%s ST_TYPE_DIRECT sc: %p %llu\n", OPENSSL_FUNC,
                 (void *)sc, rsize);
