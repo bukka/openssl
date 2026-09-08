@@ -864,6 +864,9 @@ int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
          */
         DEBUG_PRINT(stderr, "%s [ %llu, %llu ] -> [ %llu, %llu ]\n", OPENSSL_FUNC,
             r->start, r->end, fs->offset, r->end);
+        if (fs->cleanse)
+            OPENSSL_cleanse(deconst(data),
+                UINT64_TO_SIZE_T(fs->offset - r->start));
         data += fs->offset - r->start;
         r->start = fs->offset;
     }
