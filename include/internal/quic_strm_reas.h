@@ -17,8 +17,6 @@
 #ifndef OPENSSL_NO_QUIC
 #include "internal/ossl_rbtree.h"
 
-typedef struct stream_range_st STREAM_RANGE;
-
 typedef struct sframe_set_t {
     OSSL_RBT_HEAD(srange, sframe_set_t)
     ranges;
