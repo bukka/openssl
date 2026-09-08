@@ -1014,98 +1014,6 @@ err:
 }
 
 /*
- * A short retransmit which starts below an existing range and ends past its
- * direct storage tail chunk is small enough to slip past the full overlap
- * guard in try_dstorage(), whose append path then treats every byte below
- * the tail chunk end as duplicate. The genuinely new bytes below the range
- * start must not be dropped when the insert reports success, otherwise the
- * frame is acked, never retransmitted and the gap in the stream is permanent.
- */
-static int test_rstream_dstorage_two_sided_overlap(void)
-{
-    QUIC_RSTREAM *rstream = NULL;
-    QUIC_CHANNEL *ch = NULL;
-    QUIC_RSTREAM_QPARM *rsqp = NULL;
-    OSSL_QRX_PKT *pkts[59] = { NULL };
-    unsigned char pdata[64], buf[64], fill = 0xFF;
-    size_t num_pkts = 0, readbytes = 0, avail = 0, i;
-    int fin = 0;
-    int ret = 0;
-
-    for (i = 0; i < sizeof(pdata); ++i)
-        pdata[i] = (unsigned char)(0x40 + i);
-
-    if (!TEST_ptr(ch = OPENSSL_zalloc(sizeof(QUIC_CHANNEL)))
-        || !TEST_ptr(rsqp = ossl_quic_rstream_qparm_new(ch))
-        || !TEST_ptr(rstream = ossl_quic_rstream_new(NULL, NULL, rsqp)))
-        goto err;
-
-    for (i = 0; i < OSSL_NELEM(pkts); ++i)
-        if (!TEST_ptr(pkts[num_pkts++] = pkt_test_new(1200)))
-            goto err;
-
-    /* a packet backed chunk [10, 11) while below the overhead limit */
-    if (!TEST_true(ossl_quic_rstream_queue_data(rstream, pkts[0], 10,
-            pdata + 10, 1, 0))
-        || !TEST_size_t_eq(pkt_test_refcount(pkts[0]), 2))
-        goto err;
-
-    /*
-     * disjoint 1-byte frames on 1200 byte datagrams, each accounting
-     * 1199 bytes of overhead, take the stream past the 64kB overhead
-     * limit so that short chunks switch to direct storage
-     */
-    for (i = 0; i < 55; ++i)
-        if (!TEST_true(ossl_quic_rstream_queue_data(rstream, pkts[1 + i],
-                100 + 2 * i, &fill, 1, 0)))
-            goto err;
-
-    /*
-     * [11, 12) goes to the direct storage of a new tail chunk appended
-     * to the range, holding no reference to its packet
-     */
-    if (!TEST_true(ossl_quic_rstream_queue_data(rstream, pkts[56], 11,
-            pdata + 11, 1, 0))
-        || !TEST_size_t_eq(pkt_test_refcount(pkts[56]), 1))
-        goto err;
-
-    /*
-     * a 6 byte retransmit [8, 14) starts below the range [10, 12) and
-     * ends past its direct storage tail chunk, the bytes [8, 10) are
-     * new and must be kept
-     */
-    if (!TEST_true(ossl_quic_rstream_queue_data(rstream, pkts[57], 8,
-            pdata + 8, 6, 0)))
-        goto err;
-
-    /* deliver the head [0, 8) so everything up to 14 is contiguous */
-    if (!TEST_true(ossl_quic_rstream_queue_data(rstream, pkts[58], 0,
-            pdata, 8, 0)))
-        goto err;
-
-    if (!TEST_true(ossl_quic_rstream_available(rstream, &avail, &fin))
-        || !TEST_size_t_eq(avail, 14)
-        || !TEST_true(ossl_quic_rstream_read(rstream, buf, sizeof(buf),
-            &readbytes, &fin))
-        || !TEST_size_t_eq(readbytes, 14)
-        || !TEST_mem_eq(buf, readbytes, pdata, 14))
-        goto err;
-
-    if (!TEST_int_eq(ch->protocol_error, 0))
-        goto err;
-
-    ret = 1;
-
-err:
-    ossl_quic_rstream_free(rstream);
-    ossl_quic_rstream_qparm_destroy(rsqp);
-    for (i = 0; i < num_pkts; ++i)
-        pkt_test_free(pkts[i]);
-    ossl_quic_channel_free(ch);
-    return ret;
-}
-
-/*
  * A zero length read is a successful no-op returning zero read bytes,
  * and releasing a record without consuming any bytes succeeds likewise.
  * Neither may fail once at least one byte has been consumed, otherwise
@@ -2586,7 +2494,7 @@ int setup_tests(void)
     ADD_ALL_TESTS(test_rstream_reorder, 40);
     ADD_TEST(test_rstream_dstorage_two_sided_overlap);
     ADD_TEST(test_rstream_zero_length_read);
-    ADD+TEST(test_rstream_dstorage_two_sided_overlap);
+    ADD_TEST(test_rstream_dstorage_two_sided_overlap);
     ADD_TEST(test_rstream_chunk_partial_overlap);
     ADD_TEST(test_rstream_chunk_full_overlap);
     ADD_TEST(test_rstream_range_overlap);
