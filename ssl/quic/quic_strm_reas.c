@@ -902,6 +902,9 @@ int ossl_sframe_set_insert(SFRAME_SET *fs, UINT_RANGE *r, OSSL_QRX_PKT *pkt,
                 "%s [ %llu, %llu ] found in %p [ %llu, %llu ]\n", OPENSSL_FUNC,
                 r->start, r->end, (void *)sr, sr->sr_range.start,
                 sr->sr_range.end);
+            if (fs->cleanse)
+                OPENSSL_cleanse(deconst(data),
+                    UINT64_TO_SIZE_T(r->end - r->start));
             goto done; /* Range is present already. */
         }
 
