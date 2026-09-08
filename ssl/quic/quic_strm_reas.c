@@ -495,8 +495,13 @@ static int try_dstorage(SFRAME_SET *fs, OSSL_QRX_PKT *pkt,
             OPENSSL_FUNC, *data, r->start, r->end, dsize,
             (void *)sr, sr->sr_range.start, sr->sr_range.end);
 
-        if (r->end > head_sc->sc_range.start)
+        if (r->end > head_sc->sc_range.start) {
+            if (fs->cleanse)
+                OPENSSL_cleanse(
+                    deconst(*data + (head_sc->sc_range.start - r->start)),
+                    UINT64_TO_SIZE_T(r->end - head_sc->sc_range.start));
             r->end = head_sc->sc_range.start;
+        }
 
         rsize = r->end - r->start;
         /*
